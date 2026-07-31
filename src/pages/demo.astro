@@ -1,0 +1,22 @@
+---
+import SubpageLayout from '../layouts/SubpageLayout.astro';
+import Preloader from '../components/Preloader/Preloader.astro';
+---
+
+<SubpageLayout title="Demo — Gauvreau Automation">
+  <Preloader />
+  <section style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:2rem;">
+    <h1 style="font-family:var(--font-serif);font-size:clamp(2rem,5vw,4rem);color:var(--text-primary);margin-bottom:1rem;">
+      Particle Preloader Demo
+    </h1>
+    <p style="font-size:var(--text-lg);color:var(--text-body);margin-bottom:2rem;">
+      This page uses <code style="font-family:var(--font-mono);background:var(--border);padding:0.2em 0.5em;border-radius:4px;">SubpageLayout</code> with
+      the canvas particle preloader.
+    </p>
+    <div style="display:flex;gap:1rem;">
+      <span style="background:var(--accent);color:#fff;padding:0.5rem 1.5rem;border-radius:var(--radius-sm);font-weight:600;">
+        800 particles → "GAUVREAU" text
+      </span>
+    </div>
+  </section>
+</SubpageLayout>

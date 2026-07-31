@@ -1,0 +1,372 @@
+---
+import Preloader from '../components/Preloader/Preloader.astro';
+interface Props {
+  title: string;
+  description?: string;
+}
+const {
+  title = "Gauvreau — Practice Automation Tools for Clio Manage",
+  description = "Purpose-built financial integration and billing automation tools for law firms using Clio Manage."
+} = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="https://gauvreaucpa.ca/hubfs/Gauvreau%20Symbol.png" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  
+  <style is:global>
+    :root {
+      --gold: #ceb587;
+      --gold-light: #e0cca7;
+      --gold-pale: #fcf9f2;
+      --gold-rgb: 206, 181, 135;
+      --ink: #050505;
+      --ink-mid: #2d2d2d;
+      --ink-soft: #706a5f;
+      --ink-ghost: #a69f93;
+      --surface: #fdfcf9;
+      --surface-card: #fff;
+      --white: #fff;
+      --rule: #ede9e0;
+      --green: #2d6a4f;
+      --red: #c0392b;
+      --font-sans: "Outfit", -apple-system, sans-serif;
+      --font-serif: "Cormorant Garamond", serif;
+      --font-mono: "DM Mono", monospace;
+      --shadow-sm: 0 2px 8px -2px rgba(184, 150, 46, 0.04);
+      --shadow-md: 0 12px 24px -8px rgba(184, 150, 46, 0.06);
+      --shadow-lg: 0 20px 40px -12px rgba(184, 150, 46, 0.08);
+    }
+    
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+      background: var(--white);
+    }
+    
+    body {
+      font-family: var(--font-sans);
+      background: var(--white);
+      color: var(--ink-mid);
+      -webkit-font-smoothing: antialiased;
+      font-size: 15px;
+      line-height: 1.7;
+      position: relative;
+      overflow-x: hidden;
+    }
+    
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--white); }
+    ::-webkit-scrollbar-thumb {
+      background: #ede8dc;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #dcd5c4; }
+
+    /* Performant Background Elements */
+    #canvas-particles {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+
+    #cursor-glow {
+      position: fixed;
+      top: 0; left: 0;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(184,150,46,0.04) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      will-change: transform;
+      transform: translate3d(-50%, -50%, 0);
+    }
+
+    #custom-cursor {
+      position: fixed;
+      top: 0; left: 0;
+      width: 12px;
+      height: 12px;
+      background: var(--gold);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      mix-blend-mode: difference;
+      will-change: transform, width, height;
+      transform: translate3d(-50%, -50%, 0);
+      transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1), height 0.25s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s;
+    }
+
+    #custom-cursor.cursor-hover {
+      width: 48px;
+      height: 48px;
+      background: var(--white);
+    }
+
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(184,150,46,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(184,150,46,0.02) 1px, transparent 1px);
+      background-size: 56px 56px;
+    }
+
+    /* Fixed Orb Animations for zero layout thrashing */
+    .blur-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.08;
+      z-index: 0;
+      pointer-events: none;
+      will-change: transform;
+    }
+    .orb-1 {
+      top: -200px; left: -100px;
+      width: 600px; height: 600px;
+      background: var(--gold);
+      animation: floatOrbA 24s ease-in-out infinite;
+    }
+    .orb-2 {
+      bottom: 10%; right: -100px;
+      width: 500px; height: 500px;
+      background: var(--gold-light);
+      animation: floatOrbB 28s ease-in-out infinite;
+    }
+    @keyframes floatOrbA {
+      0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+      50% { transform: translate3d(40px, 30px, 0) scale(1.06); }
+    }
+    @keyframes floatOrbB {
+      0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+      50% { transform: translate3d(-60px, -40px, 0) scale(0.95); }
+    }
+
+    /* Progress bar */
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 3px;
+      width: 0%;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light), #f59e0b);
+      z-index: 1000;
+      transition: width 0.1s linear;
+      box-shadow: 0 0 10px rgba(184,150,46,0.2);
+    }
+    
+    /* Utility for reveals */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-d1 { transition-delay: 100ms; }
+    .reveal-d2 { transition-delay: 200ms; }
+    .reveal-d3 { transition-delay: 300ms; }
+    
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .orb-1, .orb-2 { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <Preloader />
+
+  <div id="progress-bar"></div>
+  <div id="custom-cursor"></div>
+  <div id="cursor-glow"></div>
+  <canvas id="canvas-particles"></canvas>
+  
+  <div class="grid-overlay"></div>
+  <div class="blur-orb orb-1"></div>
+  <div class="blur-orb orb-2"></div>
+
+  <slot />
+  <script is:inline>
+    // ─── SCROLL PROGRESS BAR ───
+    const progressBar = document.getElementById('progress-bar');
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const h = document.documentElement.scrollHeight - window.innerHeight;
+          if (h > 0) progressBar.style.width = (window.scrollY / h * 100) + '%';
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+
+    // ─── CURSOR & SPOTLIGHT GLOW (OPTIMIZED) ───
+    const glow = document.getElementById('cursor-glow');
+    const customCursor = document.getElementById('custom-cursor');
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    if (!isTouchDevice) {
+      let mouseX = window.innerWidth / 2;
+      let mouseY = window.innerHeight / 2;
+      let cursorX = mouseX;
+      let cursorY = mouseY;
+      let glowX = mouseX;
+      let glowY = mouseY;
+
+      document.addEventListener('mousemove', e => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      }, { passive: true });
+
+      function animateCursor() {
+        cursorX += (mouseX - cursorX) * 0.15;
+        cursorY += (mouseY - cursorY) * 0.15;
+        
+        glowX += (mouseX - glowX) * 0.08;
+        glowY += (mouseY - glowY) * 0.08;
+
+        if (customCursor) customCursor.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0) translate(-50%, -50%)`;
+        if (glow) glow.style.transform = `translate3d(${glowX}px, ${glowY}px, 0) translate(-50%, -50%)`;
+        
+        requestAnimationFrame(animateCursor);
+      }
+      requestAnimationFrame(animateCursor);
+
+      document.body.addEventListener('mouseenter', (e) => {
+        if(e.target.closest && e.target.closest('a, button, .sandbox-tab, .tool-card')) {
+          customCursor?.classList.add('cursor-hover');
+        }
+      }, true);
+      document.body.addEventListener('mouseleave', (e) => {
+        if(e.target.closest && e.target.closest('a, button, .sandbox-tab, .tool-card')) {
+          customCursor?.classList.remove('cursor-hover');
+        }
+      }, true);
+    } else {
+      if(glow) glow.style.display = 'none';
+      if(customCursor) customCursor.style.display = 'none';
+    }
+
+    // ─── CANVAS CONNECTING PARTICLES (OPTIMIZED) ───
+    const canvas = document.getElementById('canvas-particles');
+    if (canvas && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const ctx = canvas.getContext('2d', { alpha: true });
+      let w, h, particles = [];
+      const PARTICLE_COUNT = 40; // Reduced for performance
+      let canvasVisible = true;
+      let rafId;
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize, { passive: true });
+      resize();
+
+      class Particle {
+        constructor() { this.reset(); }
+        reset() {
+          this.x = Math.random() * w;
+          this.y = Math.random() * h;
+          this.vx = (Math.random() - 0.5) * 0.25;
+          this.vy = (Math.random() - 0.5) * 0.25;
+          this.r = Math.random() * 1.5 + 0.8;
+        }
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          if (this.x < 0 || this.x > w) this.vx *= -1;
+          if (this.y < 0 || this.y > h) this.vy *= -1;
+        }
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(184, 150, 46, 0.2)';
+          ctx.fill();
+        }
+      }
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particles.push(new Particle());
+      }
+
+      function animateParticles() {
+        if (!canvasVisible) return;
+        ctx.clearRect(0, 0, w, h);
+        
+        for (let i = 0; i < particles.length; i++) {
+          particles[i].update();
+          particles[i].draw();
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < 22500) { // 150^2
+              const dist = Math.sqrt(distSq);
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(184, 150, 46, ${(1 - dist / 150) * 0.08})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+        rafId = requestAnimationFrame(animateParticles);
+      }
+
+      // Only run particles when hero is visible
+      const heroObserver = new IntersectionObserver((entries) => {
+        const isIntersecting = entries[0].isIntersecting;
+        if (isIntersecting && !canvasVisible) {
+          canvasVisible = true;
+          rafId = requestAnimationFrame(animateParticles);
+        } else if (!isIntersecting && canvasVisible) {
+          canvasVisible = false;
+          cancelAnimationFrame(rafId);
+        }
+      }, { rootMargin: '200px' });
+      
+      const heroEl = document.querySelector('.hero');
+      if (heroEl) heroObserver.observe(heroEl);
+      else {
+        canvasVisible = true;
+        animateParticles();
+      }
+    }
+
+    // ─── INTERSECTION OBSERVER FOR REVEALS ───
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+
+    setTimeout(() => {
+      document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    }, 100);
+  </script>
+</body>
+</html>

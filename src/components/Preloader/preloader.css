@@ -1,0 +1,91 @@
+/* 
+  preloader.css 
+  Handles layout, transitions, and the curtain wipe for the Editorial Preloader.
+*/
+
+:root {
+  --preloader-bg: #E8E1D4;
+  --preloader-ink: #2A3D2E;
+}
+
+.preloader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background-color: var(--preloader-bg);
+  color: var(--preloader-ink);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  /* Prepare for curtain wipe */
+  will-change: transform, clip-path;
+}
+
+/* 3% SVG Turbulence grain */
+.preloader-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Corner Labels */
+.preloader-corner {
+  position: absolute;
+  font-family: 'DM Mono', monospace; /* Neutral monospace fallback */
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  z-index: 2;
+  transition: opacity 300ms ease;
+}
+
+.corner-tl { top: 24px; left: 24px; }
+.corner-tr { top: 24px; right: 24px; }
+.corner-bl { bottom: 24px; left: 24px; }
+.corner-br { bottom: 24px; right: 24px; }
+
+/* Center Word Track */
+.preloader-word-track {
+  position: relative;
+  overflow: hidden;
+  height: clamp(90px, 15vw, 220px);
+  width: 100vw;
+  text-align: center;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.preloader-word {
+  position: absolute;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 500;
+  font-size: clamp(80px, 12vw, 200px);
+  line-height: 1;
+  color: var(--preloader-ink);
+}
+
+.preloader-word.is-italic {
+  font-style: italic;
+}
+
+/* Global blocker while loading */
+html[data-preloader="1"] body,
+html[data-preloader="1"] {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
+/* Exit animations (The Curtain Lift) */
+.wipe-translate {
+  transform: translateY(-100vh);
+  transition: transform 1100ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+.wipe-clip {
+  clip-path: inset(100% 0 0 0);
+  transition: clip-path 1100ms cubic-bezier(0.76, 0, 0.24, 1);
+}

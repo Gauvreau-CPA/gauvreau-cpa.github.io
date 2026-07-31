@@ -1,0 +1,25 @@
+---
+import './preloader.css';
+---
+
+<!-- Gating script must run before hydration/rendering to prevent scroll/flash -->
+<script is:inline>
+  if (!sessionStorage.getItem("preloader_shown")) {
+    document.documentElement.setAttribute('data-preloader', '1');
+  }
+</script>
+
+<div id="loco-preloader" class="preloader-overlay" aria-hidden="true">
+  <!-- Subtle noise grain -->
+  <div class="preloader-noise"></div>
+  
+  <div class="preloader-corner corner-tl">GAUVREAU ©</div>
+  <div class="preloader-corner corner-br">INDEX</div>
+  
+  <div class="preloader-word-track">
+    <span class="preloader-word current-word" style="transform: translateY(0)"></span>
+    <span class="preloader-word next-word" style="transform: translateY(100%)"></span>
+  </div>
+</div>
+
+<script src="./preloader.client.ts"></script>
