@@ -1,0 +1,457 @@
+---
+import SubpageLayout from '../layouts/SubpageLayout.astro';
+---
+<SubpageLayout title="Clio Rate Override Engine -- Gauvreau Accounting" description="Automated billing rate management for law firms using Clio Manage -- real-time rate correction, audit logging, and multi-firm support.">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-hover: #1c2230;  
+    --border: #30363d;
+    --text-primary: #f0ebe0;
+    --text-body: #8b949e;
+    --text-muted: #6e7681;
+    --accent: #d4a843;
+    --success: #3fb950;
+    --warn: #f0883e;
+    --error: #f85149;
+    --font-serif: 'Cormorant Garamond', Georgia, serif;
+    --font-mono: 'DM Mono', 'SF Mono', monospace;
+    --dur-instant: 80ms;
+    --dur-quick: 180ms;
+    --dur-base: 320ms;
+    --dur-scene: 600ms;
+    --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  main {
+    background: var(--bg);
+    color: var(--text-body);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    padding-bottom: 80px;
+    position: relative;
+    overflow-x: hidden;
+  }
+  
+  canvas#ambient-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .content-wrapper {
+    position: relative;
+    z-index: 10;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  
+  .nav-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    background: rgba(13, 17, 23, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+  }
+  
+  .nav-left { display: flex; align-items: center; gap: 12px; }
+  .prompt { color: var(--accent); font-family: var(--font-mono); font-weight: bold; }
+  .logo { height: 16px; width: auto; opacity: 0.9; }
+  .back-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color var(--dur-quick) var(--ease-enter);
+  }
+  .back-link:hover { color: var(--accent); }
+  
+  #progress-bar {
+    position: absolute;
+    bottom: -1px; left: 0;
+    height: 1px;
+    background: var(--accent);
+    width: 0%;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity var(--dur-scene) var(--ease-enter), transform var(--dur-scene) var(--ease-enter);
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  section { margin-top: 120px; content-visibility: auto; }
+  
+  .hero { margin-top: 160px; text-align: left; }
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 12px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    border-radius: 4px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 4rem;
+    color: var(--text-primary);
+    line-height: 1.1;
+    margin-bottom: 24px;
+  }
+  .tagline { font-size: 1.2rem; max-width: 600px; line-height: 1.6; }
+  
+  .eyebrow {
+    color: var(--accent);
+    text-transform: uppercase;
+    font-size: 14px;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+  .section-title {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+  }
+  
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    transition: border-color var(--dur-base) var(--ease-enter);
+  }
+  .card:hover { border-color: var(--accent); }
+  .card h3 { color: var(--text-primary); margin-bottom: 12px; font-size: 1.2rem; }
+  
+  .step-flow { display: flex; flex-direction: column; gap: 16px; font-family: var(--font-mono); }
+  .step { display: flex; align-items: flex-start; gap: 16px; }
+  .step-num { color: var(--accent); font-weight: bold; }
+  .step-arrow { color: var(--border); margin-left: 8px; }
+  
+  .before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .ba-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px;
+  }
+  .ba-col.before { border-left: 4px solid var(--error); }
+  .ba-col.after { border-left: 4px solid var(--success); }
+  .ba-col h3 { color: var(--text-primary); margin-bottom: 16px; }
+  
+  details {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0;
+    font-family: var(--font-mono);
+  }
+  summary {
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  details p { margin-top: 12px; color: var(--text-muted); }
+  
+  .cta-section { text-align: center; margin-top: 160px; padding: 80px 0; border-top: 1px solid var(--border); }
+  .terminal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px 24px;
+    border-radius: 8px;
+    display: inline-block;
+    color: var(--text-primary);
+    margin-bottom: 32px;
+    font-family: var(--font-mono);
+  }
+  .cta-section h2 {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 3rem;
+    color: var(--text-primary);
+    margin-bottom: 32px;
+  }
+  .btn {
+    background: var(--accent);
+    color: var(--bg);
+    padding: 16px 32px;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    display: inline-block;
+    transition: opacity var(--dur-quick) var(--ease-enter);
+  }
+  .btn:hover { opacity: 0.9; }
+  
+  footer {
+    text-align: center;
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 80px;
+  }
+</style>
+<main>
+  <canvas id="ambient-canvas"></canvas>
+  
+  <div class="nav-bar">
+    <div class="nav-left">
+      <span class="prompt">$</span>
+      <img src="https://gauvreaucpa.ca/hs-fs/hubfs/Mobile%20Logo_-1.png" alt="Gauvreau" class="logo" />
+    </div>
+    <a href="../" class="back-link">← Suite</a>
+    <div id="progress-bar"></div>
+  </div>
+  
+  <div class="content-wrapper">
+    <div class="hero">
+      <div class="badge reveal">[WATCHING]</div>
+      <h1 tabindex="-1" class="reveal">Clio Rate Override Engine</h1>
+      <p class="tagline reveal">Monitor time entries in real-time and enforce accurate billing rates — automatically.</p>
+    </div>
+    
+    <section>
+      <div class="eyebrow reveal">The Problem</div>
+      <h2 class="section-title reveal">Time billing errors</h2>
+      <p class="reveal">Wrong rates applied to matters, categories, and user groups. These errors are often discovered at invoice time, leading to billing disputes and lost revenue.</p>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">How It Works</div>
+      <h2 class="section-title reveal">The 4-step flow</h2>
+      <div class="step-flow reveal">
+        <div class="step">
+          <span class="step-num">1.</span>
+          <div>webhook fires when time entry saved</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <span class="step-num">2.</span>
+          <div>engine evaluates rate rules hierarchy (Matter Override &gt; Category Override &gt; User Group)</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <span class="step-num">3.</span>
+          <div>applies correction instantly</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <span class="step-num">4.</span>
+          <div>writes audit record</div>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">Features</div>
+      <h2 class="section-title reveal">What the engine does</h2>
+      <div class="cards">
+        <div class="card reveal">
+          <h3>Live webhook listener</h3>
+          <p>Instantly catches time entries as they are saved in Clio.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Priority rule matching</h3>
+          <p>Evaluates Matter Override, Category Override, and User Group in order of specificity.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Auto-correction</h3>
+          <p>Fixes the rate on the entry instantly without human intervention.</p>
+        </div>
+        <div class="card reveal">
+          <h3>SOC-ready audit trail</h3>
+          <p>Every change logged with who, what, when, and why for compliance.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Rate rule editor</h3>
+          <p>A simple interface to define and manage billing rules.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Multi-timekeeper support</h3>
+          <p>Manage rules across all users and groups seamlessly.</p>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">Comparison</div>
+      <h2 class="section-title reveal">Manual vs Automated</h2>
+      <div class="before-after">
+        <div class="ba-col before reveal">
+          <h3>Manual</h3>
+          <p>Discover rate errors at invoice time, manually fix each entry, email partners for approval, and reprocess the invoice. Prone to disputes and errors.</p>
+        </div>
+        <div class="ba-col after reveal">
+          <h3>Automated</h3>
+          <p>Intercept on save, apply rule instantly, correct the entry, and log the audit trail. Zero disputes. Always-correct rates.</p>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">Benefits</div>
+      <h2 class="section-title reveal">Why it matters</h2>
+      <div class="cards">
+        <div class="card reveal">
+          <h3>Zero billing disputes</h3>
+          <p>Clients always see the agreed-upon rates.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Always-correct rates</h3>
+          <p>Never leave revenue on the table due to typos.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Audit ready</h3>
+          <p>Full logs for every automatic correction.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Partners trust the numbers</h3>
+          <p>Confidence in month-end reporting without manual checks.</p>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">FAQ</div>
+      <h2 class="section-title reveal">Common questions</h2>
+      <details class="reveal">
+        <summary>Does it change how timekeepers enter time?</summary>
+        <p>No, they enter time exactly as they do now. The engine corrects it behind the scenes instantly.</p>
+      </details>
+      <details class="reveal">
+        <summary>What if there's no matching rule?</summary>
+        <p>The time entry is left untouched, using the default rate provided.</p>
+      </details>
+      <details class="reveal">
+        <summary>How fast is the correction?</summary>
+        <p>Typically under a minute from the moment the entry is saved.</p>
+      </details>
+      <details class="reveal">
+        <summary>What's in the audit trail?</summary>
+        <p>Timestamps, old and new values, and the specific rule that triggered the correction.</p>
+      </details>
+      <details class="reveal">
+        <summary>Can I edit rules myself?</summary>
+        <p>Yes, through the integrated rate rule editor.</p>
+      </details>
+      <details class="reveal">
+        <summary>Does it support all Clio plan types?</summary>
+        <p>It supports Clio Manage plans with API access.</p>
+      </details>
+    </section>
+    
+    <div class="cta-section reveal">
+      <div class="terminal">$ gauvreau-rate-override --enable</div>
+      <h2>Rate errors cost more than the fix.</h2>
+      <a href="mailto:contact@gauvreaucpa.ca" class="btn">Contact Gauvreau</a>
+    </div>
+    
+    <footer>
+      <a href="../" class="back-link">← Back to Suite</a>
+    </footer>
+  </div>
+</main>
+<script is:inline>
+  (() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('.reveal').forEach(el => el.classList.add('is-visible'));
+    } else {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    }
+
+    const progress = document.getElementById('progress-bar');
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const h = document.documentElement.scrollHeight - window.innerHeight;
+          if (h > 0) {
+            progress.style.width = (window.scrollY / h * 100) + '%';
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+  })();
+
+  (() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const canvas = document.getElementById('ambient-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { alpha: true });
+    const LINE_SPACING = 56;
+    let w = 0, h = 0, dpr = 1, offset = 0, scrollVel = 0, lastY = window.scrollY;
+    let rafId, isHidden = false;
+    function resize() {
+      dpr = Math.min(devicePixelRatio, 2);
+      w = window.innerWidth; h = window.innerHeight;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    let rTimer;
+    window.addEventListener('resize', () => { clearTimeout(rTimer); rTimer = setTimeout(resize, 100); }, { passive: true });
+    resize();
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      scrollVel = Math.min(Math.abs(y - lastY), 20);
+      lastY = y;
+      setTimeout(() => { scrollVel = Math.max(0, scrollVel - 2); }, 80);
+    }, { passive: true });
+    function draw() {
+      if (isHidden) return;
+      ctx.clearRect(0, 0, w, h);
+      const speed = 0.3 + scrollVel * 0.004;
+      offset = (offset + speed) % LINE_SPACING;
+      const count = Math.ceil(h / LINE_SPACING) + 2;
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(212, 168, 67, 0.04)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < count; i++) {
+        const y = Math.round(i * LINE_SPACING - offset);
+        ctx.moveTo(0, y); ctx.lineTo(w, y);
+      }
+      ctx.stroke();
+      rafId = requestAnimationFrame(draw);
+    }
+    document.addEventListener('visibilitychange', () => {
+      isHidden = document.hidden;
+      if (!isHidden) { offset = 0; draw(); } else cancelAnimationFrame(rafId);
+    });
+    draw();
+  })();
+</script>
+</SubpageLayout>

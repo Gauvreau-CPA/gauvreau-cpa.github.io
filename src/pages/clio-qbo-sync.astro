@@ -1,0 +1,572 @@
+---
+import SubpageLayout from '../layouts/SubpageLayout.astro';
+---
+<SubpageLayout title="Clio -> QuickBooks Automated Bridge - Gauvreau Accounting" description="Expenses logged in Clio appear in QuickBooks Online as vendor bills — with receipts attached.">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-hover: #1c2230;
+      --border: #30363d;
+      --text-primary: #f0ebe0;
+      --text-body: #8b949e;
+      --text-muted: #6e7681;
+      --accent: #d4a843;
+      --success: #3fb950;
+      --warn: #f0883e;
+      --error: #f85149;
+      
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-mono: 'DM Mono', 'SF Mono', monospace;
+      
+      --dur-instant: 80ms;
+      --dur-quick: 180ms;
+      --dur-base: 320ms;
+      --dur-scene: 600ms;
+      --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+      --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      
+      --radius-lg: 8px;
+    }
+
+    main {
+      background-color: var(--bg);
+      color: var(--text-body);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    #ambient-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .content-wrapper {
+      position: relative;
+      z-index: 10;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 100px 24px 40px;
+    }
+
+    .top-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 1px;
+      background: var(--accent);
+      z-index: 101;
+      width: 0%;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color var(--dur-quick) var(--ease-enter);
+    }
+    .nav-link:hover { color: var(--text-primary); }
+    .prompt { color: var(--accent); margin-right: 8px; }
+
+    h1, h2, h3, h4 {
+      font-weight: 400;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-style: italic;
+      line-height: 1.1;
+    }
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-style: italic;
+    }
+    .section-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .section-body {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text-body);
+      max-width: 600px;
+      margin-bottom: 32px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      background: rgba(212, 168, 67, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      color: var(--accent);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 24px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity var(--dur-scene) var(--ease-exit), transform var(--dur-scene) var(--ease-exit);
+    }
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+    }
+
+    section { padding: 60px 0; }
+    .below-fold { content-visibility: auto; contain-intrinsic-size: 600px; }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: border-color var(--dur-base) var(--ease-enter);
+    }
+    .card:hover { border-color: var(--accent); }
+    .card h3 {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    .card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+
+    .flow-steps {
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .flow-step {
+      display: flex; gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      align-items: flex-start;
+    }
+    .flow-num {
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 1.2rem;
+    }
+    .flow-step h4 { font-family: var(--font-mono); font-size: 1.1rem; margin-bottom: 4px; }
+    .flow-step p { font-size: 0.9rem; color: var(--text-muted); }
+
+    .check-list { list-style: none; padding: 0; }
+    .check-list li {
+      position: relative;
+      padding-left: 24px;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+    .check-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 768px) { .compare-grid { grid-template-columns: 1fr; } }
+    .compare-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+    .compare-card.before { border-top: 2px solid var(--error); }
+    .compare-card.after { border-top: 2px solid var(--success); }
+    .compare-card h3 { font-family: var(--font-mono); font-size: 1.2rem; }
+    .compare-card ul { list-style: none; padding: 0; }
+    .compare-card li {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .compare-card li:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-btn {
+      width: 100%; background: none; border: none;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 1rem; text-align: left; padding: 24px 0;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    }
+    .faq-btn:hover { color: var(--accent); }
+    .faq-content {
+      max-height: 0; overflow: hidden;
+      transition: max-height var(--dur-base) var(--ease-spring);
+    }
+    .faq-content p { padding-bottom: 24px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+
+    .cta-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 48px;
+      margin-top: 40px;
+    }
+    .cta-box h2 {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: clamp(2rem, 4vw, 2.5rem);
+    }
+    .cta-btn {
+      display: inline-block; margin-top: 24px; padding: 12px 24px;
+      background: transparent; color: var(--accent); border: 1px solid var(--accent);
+      text-decoration: none; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em;
+      transition: all var(--dur-quick) var(--ease-enter);
+    }
+    .cta-btn:hover { background: var(--accent); color: var(--bg); }
+
+    .footer { text-align: center; padding: 40px 0; border-top: 1px solid var(--border); margin-top: 80px; }
+  </style>
+
+  <main>
+    <div id="progress-bar"></div>
+    <canvas id="ambient-canvas"></canvas>
+    
+    <nav class="top-nav">
+      <div class="nav-left">
+        <span class="prompt">$</span>
+        <img loading="lazy" decoding="async" src="https://gauvreaucpa.ca/hs-fs/hubfs/Mobile%20Logo_-1.png" alt="Gauvreau" style="height:14px;width:auto;display:block;">
+      </div>
+      <div class="nav-right">
+        <a href="/" class="nav-link">&larr; Back to Suite</a>
+      </div>
+    </nav>
+
+    <div class="content-wrapper">
+      <section id="hero" class="reveal">
+        <div class="badge">[STATUS: LIVE] &middot; Accounting Bridge</div>
+        <h1>Clio &rarr; QuickBooks Automated Bridge</h1>
+        <p class="section-body" style="font-size: 1.2rem; max-width: 800px;">
+          Expenses logged in Clio appear in QuickBooks Online as vendor bills — with receipts attached.
+        </p>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">The Challenge</span>
+        <h2 class="section-title reveal">Hard costs slow your firm down</h2>
+        <p class="section-body reveal">
+          Hours wasted every day. Typos & mistakes. Month-end scramble. Receipts go missing.
+        </p>
+        
+        <div class="card-grid">
+          <div class="card reveal">
+            <h3>Hours wasted every day</h3>
+            <p>Paralegals and accountants manually copy expenses between Clio and QBO — every single one, by hand.</p>
+          </div>
+          <div class="card reveal">
+            <h3>Typos &amp; mistakes</h3>
+            <p>Wrong amounts, incorrect vendor names, mis-categorized accounts. Each error means a correction later.</p>
+          </div>
+          <div class="card reveal">
+            <h3>Month-end scramble</h3>
+            <p>Reconciliation becomes a hunt across two systems trying to match what was entered where.</p>
+          </div>
+          <div class="card reveal">
+            <h3>Receipts go missing</h3>
+            <p>Attachments and invoices stay in Clio. Accounting never sees them unless someone remembers to forward them.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Workflow</span>
+        <h2 class="section-title reveal">How it works</h2>
+        
+        <div class="flow-steps reveal">
+          <div class="flow-step">
+            <span class="flow-num">01</span>
+            <div>
+              <h4>Enter in Clio</h4>
+              <p>Legal team records a hard cost — filing fee, courier, medical records, etc.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <span class="flow-num">02</span>
+            <div>
+              <h4>Bridge syncs it</h4>
+              <p>The system detects the expense, matches the vendor &amp; matter, and prepares the bill.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <span class="flow-num">03</span>
+            <div>
+              <h4>Appears in QBO</h4>
+              <p>A complete vendor bill is ready in QuickBooks — with the right vendor, amount, and attachments.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Capabilities</span>
+        <h2 class="section-title reveal">Features</h2>
+        <div class="card-grid" style="margin-bottom: 32px;">
+          <div class="card reveal"><h3>No access to QBO needed</h3><p>Legal staff never touch QuickBooks. They stay in Clio. The Bridge handles the handoff.</p></div>
+          <div class="card reveal"><h3>Receipts travel automatically</h3><p>Attach a receipt or invoice in Clio — it appears on the QBO bill. No forwarding, no re-attaching.</p></div>
+          <div class="card reveal"><h3>Nothing to remember</h3><p>No toggle to flip, no extra step, no checkbox. Just work as normal and the sync happens in the background.</p></div>
+          <div class="card reveal"><h3>SOC-ready ledger sync</h3><p>Secure, audit-ready data transit directly into your general ledger.</p></div>
+          <div class="card reveal"><h3>Per-expense vendor mapping</h3><p>Intelligently matches Clio payees to QBO vendors automatically.</p></div>
+          <div class="card reveal"><h3>Retry logic on failure</h3><p>If QBO API drops, the bridge retries automatically to guarantee delivery.</p></div>
+        </div>
+
+        <h3 class="reveal" style="font-family: var(--font-mono); font-size: 1.1rem; margin-top: 40px; color: var(--accent);">Every expense. Every detail. Automatically.</h3>
+        <p class="section-body reveal">Cost entry detected &rarr; Vendor matched &rarr; Bill created &rarr; Receipt attached &rarr; Confirmed in QBO</p>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Comparison</span>
+        <h2 class="section-title reveal">Before / After</h2>
+        
+        <div class="compare-grid">
+          <div class="compare-card before reveal">
+            <h3 style="color: var(--error); margin-bottom: 16px;">Manual</h3>
+            <ul>
+              <li>Log expense in Clio</li>
+              <li>Download receipt</li>
+              <li>Email to bookkeeper</li>
+              <li>Manually enter in QBO</li>
+              <li>Attach receipt</li>
+              <li>Reconcile at month-end</li>
+            </ul>
+          </div>
+          <div class="compare-card after reveal">
+            <h3 style="color: var(--success); margin-bottom: 16px;">Automated</h3>
+            <ul>
+              <li>Expense enters Clio</li>
+              <li>Bridge detects instantly</li>
+              <li>Vendor matched automatically</li>
+              <li>QBO bill created with receipt</li>
+              <li style="color: var(--success);">Reconciled automatically</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Value</span>
+        <h2 class="section-title reveal">Benefits</h2>
+        <div class="card-grid">
+          <div class="card reveal"><h3>Time back for your team</h3><p>Paralegals stop forwarding receipts. Accountants stop re-typing data.</p></div>
+          <div class="card reveal"><h3>Cleaner books, faster close</h3><p>Every expense is already in QBO with correct details.</p></div>
+          <div class="card reveal"><h3>Full visibility</h3><p>Know exactly which expenses have synced and which need attention.</p></div>
+          <div class="card reveal"><h3>Receipts never lost</h3><p>Every attachment from Clio lands in QBO automatically.</p></div>
+          <div class="card reveal"><h3>Trust your numbers</h3><p>Automated sync means no typos and no wrong vendors.</p></div>
+          <div class="card reveal"><h3>Zero training required</h3><p>Your team keeps working in Clio exactly as they always have.</p></div>
+        </div>
+      </section>
+      
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Use Cases</span>
+        <h2 class="section-title reveal">Real expenses</h2>
+        <ul class="check-list reveal">
+          <li>Paralegal files a motion</li>
+          <li>Attorney orders medical records</li>
+          <li>Courier picks up a package</li>
+          <li>End of month reconciliation</li>
+        </ul>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Knowledge Base</span>
+        <h2 class="section-title reveal">FAQ</h2>
+        
+        <div class="faq-container reveal">
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Does this change how we use Clio? <span>+</span></button>
+            <div class="faq-content"><p>Not at all. Your team enters expenses the same way they always have. The Bridge works silently in the background — no new buttons, no extra steps.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">What happens if something goes wrong? <span>+</span></button>
+            <div class="faq-content"><p>The system retries automatically. If an expense can't be synced, it's clearly flagged with an explanation so someone can fix it with one click.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Do receipts really carry over? <span>+</span></button>
+            <div class="faq-content"><p>Yes. Any document attached to the expense in Clio — invoice, receipt, PDF — appears on the vendor bill in QBO. No manual forwarding needed.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">How fast does it sync? <span>+</span></button>
+            <div class="faq-content"><p>Most expenses appear in QBO within 30 seconds. If expenses are imported in bulk, a background process catches them within a few hours.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Is our data secure? <span>+</span></button>
+            <div class="faq-content"><p>Yes. The connection uses industry-standard encryption. Your firm's data stays isolated and private.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Which expenses get synced? <span>+</span></button>
+            <div class="faq-content"><p>Hard costs — filing fees, courier charges, medical records, expert witness fees, court costs, and any other out-of-pocket expense tracked in Clio.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <div class="cta-box reveal">
+          <span class="prompt">$</span>
+          <h2>Clio Meets QuickBooks. Automatically.</h2>
+          <p style="margin: 16px 0; color: var(--text-primary); font-size: 1.2rem;">Enter once. Sync forever.</p>
+          <a href="mailto:info@gauvreaucpa.ca" class="cta-btn">Initialize Service</a>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <a href="/" class="nav-link">&larr; Back to Suite</a>
+      </footer>
+    </div>
+  </main>
+
+  <script is:inline>
+    // Scroll progress
+    const progress = document.getElementById('progress-bar');
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      if (h > 0) progress.style.width = (window.scrollY / h * 100) + '%';
+    }, { passive: true });
+
+    // Intersection Observer for reveals
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-transitioning');
+          requestAnimationFrame(() => {
+            entry.target.classList.add('is-visible');
+          });
+          
+          entry.target.addEventListener('transitionend', function handler(e) {
+            if (e.propertyName === 'transform') {
+              entry.target.classList.remove('is-transitioning');
+              entry.target.removeEventListener('transitionend', handler);
+            }
+          });
+          
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // FAQ Accordion
+    document.querySelectorAll('.faq-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', !expanded);
+        btn.querySelector('span').textContent = expanded ? '+' : '−';
+        
+        const content = btn.nextElementSibling;
+        if (!expanded) {
+          content.style.maxHeight = content.scrollHeight + 'px';
+        } else {
+          content.style.maxHeight = '0px';
+        }
+      });
+    });
+
+    // Ambient Canvas
+    (() => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const canvas = document.getElementById('ambient-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d', { alpha: true });
+      const LINE_SPACING = 56;
+      let w = 0, h = 0, dpr = 1, offset = 0, scrollVel = 0, lastY = window.scrollY;
+      let rafId, isHidden = false;
+      
+      function resize() {
+        dpr = Math.min(devicePixelRatio, 2);
+        w = window.innerWidth; h = window.innerHeight;
+        canvas.width = w * dpr; canvas.height = h * dpr;
+        canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      
+      let rTimer;
+      window.addEventListener('resize', () => { clearTimeout(rTimer); rTimer = setTimeout(resize, 100); }, { passive: true });
+      resize();
+      
+      window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        scrollVel = Math.min(Math.abs(y - lastY), 20);
+        lastY = y;
+        setTimeout(() => { scrollVel = Math.max(0, scrollVel - 2); }, 80);
+      }, { passive: true });
+      
+      function draw() {
+        if (isHidden) return;
+        ctx.clearRect(0, 0, w, h);
+        const speed = 0.3 + scrollVel * 0.004;
+        offset = (offset + speed) % LINE_SPACING;
+        const count = Math.ceil(h / LINE_SPACING) + 2;
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(212, 168, 67, 0.04)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < count; i++) {
+          const y = Math.round(i * LINE_SPACING - offset);
+          ctx.moveTo(0, y); ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+        rafId = requestAnimationFrame(draw);
+      }
+      
+      document.addEventListener('visibilitychange', () => {
+        isHidden = document.hidden;
+        if (!isHidden) { offset = 0; draw(); } else cancelAnimationFrame(rafId);
+      });
+      draw();
+    })();
+  </script>
+</SubpageLayout>

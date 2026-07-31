@@ -1,0 +1,315 @@
+---
+import SubpageLayout from '../layouts/SubpageLayout.astro';
+---
+<SubpageLayout title="Trust Transfer Tool — Gauvreau" description="Compliant trust transfer requisitions, Form 9A generation, cheque printing, and automatic Clio record updates.">
+  <style>
+  /* Local scoped CSS for the subpage */
+  .nav-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(13, 17, 23, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    max-width: 1200px; margin: 0 auto;
+    padding: var(--space-4) var(--space-6);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: var(--space-2);
+    text-decoration: none; font-family: var(--font-mono);
+    font-size: var(--step--1); font-weight: 500; color: var(--text-primary);
+  }
+  .nav-prompt { color: var(--accent); user-select: none; }
+  .nav-back {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    color: var(--text-muted); text-decoration: none;
+    transition: color var(--dur-quick) var(--ease-standard);
+  }
+  .nav-back:hover { color: var(--text-primary); }
+  #progress-bar {
+    position: fixed; top: 0; left: 0; height: 1px;
+    background: var(--accent); z-index: 101; width: 0%;
+    transition: width 0.08s linear;
+  }
+
+  .main-content {
+    position: relative; z-index: 2;
+    padding-top: calc(var(--space-11) + 60px);
+  }
+  .container { max-width: 1140px; margin: 0 auto; padding: 0 var(--space-6); }
+
+  /* Hero */
+  .hero { margin-bottom: var(--space-11); }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: var(--step--1);
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: var(--space-4);
+  }
+  .hero-badge .status { color: var(--text-muted); padding: 2px 6px; background: rgba(110,118,129,0.08); border-radius: 2px; }
+  .hero-title {
+    font-family: var(--font-serif); font-style: italic; font-weight: 700;
+    font-size: var(--step-5); color: var(--text-primary);
+    line-height: 1; letter-spacing: -0.02em; margin-bottom: var(--space-5);
+  }
+  .hero-tagline {
+    font-family: var(--font-mono); font-size: var(--step-1);
+    color: var(--text-body); max-width: 50ch; line-height: 1.6;
+  }
+
+  /* Section globals */
+  .section { margin-bottom: var(--space-11); content-visibility: auto; contain-intrinsic-size: 600px; }
+  .section-eyebrow {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase;
+    display: block; margin-bottom: var(--space-4);
+  }
+  .section-title {
+    font-family: var(--font-serif); font-style: italic; font-weight: 700;
+    font-size: var(--step-4); color: var(--text-primary);
+    line-height: 1.1; letter-spacing: -0.02em; margin-bottom: var(--space-8);
+  }
+
+  /* Features Grid */
+  .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .feature-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: var(--space-6);
+    transition: border-color var(--dur-quick) var(--ease-standard);
+  }
+  .feature-card:hover { border-color: rgba(212,168,67,0.3); }
+  .feature-card h3 {
+    font-family: var(--font-mono); font-size: var(--step-0); font-weight: 500;
+    color: var(--text-primary); margin-bottom: var(--space-2);
+  }
+  .feature-card p {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    color: var(--text-body); line-height: 1.7;
+  }
+
+  /* Workflow Steps */
+  .workflow-list { display: flex; flex-direction: column; gap: var(--space-6); position: relative; }
+  .workflow-list::before {
+    content: ''; position: absolute; left: 16px; top: 0; bottom: 0;
+    width: 1px; background: var(--border); z-index: 0;
+  }
+  .workflow-step { display: flex; gap: var(--space-5); position: relative; z-index: 1; }
+  .step-num {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--bg); border: 1px solid var(--accent);
+    color: var(--accent); display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: var(--step--1); flex-shrink: 0;
+  }
+  .step-content h3 { font-family: var(--font-mono); font-size: var(--step-0); color: var(--text-primary); margin-bottom: var(--space-2); }
+  .step-content p { font-family: var(--font-mono); font-size: var(--step--1); color: var(--text-body); max-width: 60ch; }
+  .step-tag { display: inline-block; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 8px; }
+
+  /* Deep Dive List */
+  .deep-dive-list { display: flex; flex-direction: column; gap: var(--space-5); }
+  .deep-dive-item { display: flex; gap: var(--space-4); align-items: flex-start; padding-bottom: var(--space-5); border-bottom: 1px solid var(--border); }
+  .deep-dive-item:last-child { border-bottom: none; }
+  .check-icon { color: var(--accent); flex-shrink: 0; margin-top: 2px; }
+  .deep-dive-content h3 { font-family: var(--font-mono); font-size: var(--step-0); color: var(--text-primary); margin-bottom: 4px; }
+  .deep-dive-content p { font-family: var(--font-mono); font-size: var(--step--1); color: var(--text-body); line-height: 1.6; max-width: 65ch; }
+
+  /* CTA Box */
+  .cta-section { margin-bottom: var(--space-10); }
+  .cta-box {
+    border: 1px solid rgba(212,168,67,0.15); border-radius: var(--radius-lg);
+    padding: var(--space-8); background: rgba(22,27,34,0.6);
+    position: relative; overflow: hidden; display: flex; flex-direction: column; gap: var(--space-4);
+  }
+  .cta-box::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(212,168,67,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(212,168,67,0.02) 1px, transparent 1px);
+    background-size: 32px 32px; pointer-events: none;
+  }
+  .cta-prompt { font-family: var(--font-mono); font-size: var(--step--1); color: var(--accent); position: relative; z-index: 1; }
+  .cta-title { font-family: var(--font-serif); font-style: italic; font-weight: 700; font-size: var(--step-3); color: var(--text-primary); line-height: 1.1; position: relative; z-index: 1; }
+  .btn-primary {
+    font-family: var(--font-mono); font-size: var(--step--1); font-weight: 500;
+    color: var(--bg); background: var(--accent); border: 1px solid var(--accent);
+    padding: var(--space-2) var(--space-5); border-radius: var(--radius-sm);
+    text-decoration: none; width: fit-content; position: relative; z-index: 1;
+    transition: background var(--dur-quick) var(--ease-standard);
+  }
+  .btn-primary:hover { background: #e8bb50; }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid var(--border); padding: var(--space-6) 0;
+    font-family: var(--font-mono); font-size: var(--step--1); color: var(--text-muted);
+    text-align: center; background: var(--surface);
+  }
+
+  @media (max-width: 768px) {
+    .features-grid { grid-template-columns: 1fr; }
+    .hero-title { font-size: clamp(2.5rem, 8vw, 4rem); }
+  }
+  </style>
+
+  <div id="progress-bar" aria-hidden="true"></div>
+
+  <header class="nav-bar">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo" aria-label="Gauvreau Automation Suite">
+        <span class="nav-prompt" aria-hidden="true">$</span>
+        <img src="https://gauvreaucpa.ca/hs-fs/hubfs/Mobile%20Logo_-1.png" alt="Gauvreau" height="22" width="auto" style="filter:brightness(0) invert(1);opacity:0.85;">
+      </a>
+      <a href="/" class="nav-back">← Back to Suite</a>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="container">
+      
+      <!-- HERO -->
+      <section class="hero reveal">
+        <div class="hero-badge">
+          Trust Management <span class="status">READY</span>
+        </div>
+        <h1 class="hero-title" tabindex="-1">Trust Transfer Tool</h1>
+        <p class="hero-tagline">
+          A desktop app for law firms that prepares trust transfer requisitions, prints the forms and cheques, and automatically updates the records in Clio.
+        </p>
+      </section>
+
+      <!-- FEATURES -->
+      <section class="section">
+        <span class="section-eyebrow reveal">Capabilities</span>
+        <h2 class="section-title reveal">Everything you need for trust transfers.</h2>
+        <div class="features-grid">
+          <div class="feature-card reveal reveal-d1">
+            <h3>Clio Integration</h3>
+            <p>Connects directly to Clio Manage. Pull client matters, find trust accounts, and write reference numbers back to Clio automatically.</p>
+          </div>
+          <div class="feature-card reveal reveal-d2">
+            <h3>Two-Person Workflow</h3>
+            <p>Ensures oversight. An assistant prepares the transfer, and a lawyer or signatory gives final authorization before forms are printed.</p>
+          </div>
+          <div class="feature-card reveal reveal-d1">
+            <h3>Form 9A Generation</h3>
+            <p>The LSO requires a Form 9A for every transfer. The app automatically fills and generates the official forms for you.</p>
+          </div>
+          <div class="feature-card reveal reveal-d2">
+            <h3>Summary Statement Printing</h3>
+            <p>Creates a single summary PDF with your firm's letterhead detailing every item in the authorized batch.</p>
+          </div>
+          <div class="feature-card reveal reveal-d1">
+            <h3>Cheque Printing</h3>
+            <p>Print variable information (date, payee, amount, memo) directly onto your pre-printed voucher-cheque stock.</p>
+          </div>
+          <div class="feature-card reveal reveal-d2">
+            <h3>Batch History</h3>
+            <p>A full audit trail of past transfers. See who prepared and authorized each batch, and retrieve previously generated PDFs.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- WORKFLOW -->
+      <section class="section">
+        <span class="section-eyebrow reveal">Workflow</span>
+        <h2 class="section-title reveal">How it works.</h2>
+        <div class="workflow-list">
+          <div class="workflow-step reveal">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h3>Prepare</h3>
+              <p>Search for a matter in Clio, add amounts, fill bank details, and save your batch.</p>
+              <span class="step-tag">Role: Assistant</span>
+            </div>
+          </div>
+          <div class="workflow-step reveal reveal-d1">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h3>Authorize</h3>
+              <p>Review every line item and the total. Select your name and click Authorize & Generate.</p>
+              <span class="step-tag">Role: Lawyer / Signatory</span>
+            </div>
+          </div>
+          <div class="workflow-step reveal reveal-d2">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h3>Generate & Update</h3>
+              <p>PDFs are printed and reference numbers are synced straight back to Clio Manage.</p>
+              <span class="step-tag">Automated</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DEEP DIVE -->
+      <section class="section">
+        <span class="section-eyebrow reveal">Deep Dive</span>
+        <h2 class="section-title reveal">Inside the App.</h2>
+        <div class="deep-dive-list">
+          <div class="deep-dive-item reveal reveal-d1">
+            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div class="deep-dive-content">
+              <h3>Clio Connection</h3>
+              <p>Log in via Chrome or Edge once. The app captures a session to seamlessly update transaction records and pull live data.</p>
+            </div>
+          </div>
+          <div class="deep-dive-item reveal reveal-d2">
+            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div class="deep-dive-content">
+              <h3>Verification Logs</h3>
+              <p>After authorization, scan the verification log in your browser. Green means success; red provides detailed error messages to handle manually.</p>
+            </div>
+          </div>
+          <div class="deep-dive-item reveal reveal-d3">
+            <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div class="deep-dive-content">
+              <h3>Automated Outputs</h3>
+              <p>All Form 9As, summary PDFs, and cheque overlays are saved instantly in your output folder, ready to print.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="cta-section reveal">
+        <div class="cta-box">
+          <div class="cta-prompt" aria-hidden="true">$ gauvreau-suite --request-access</div>
+          <h2 class="cta-title">Compliant trust transfers.<br>Effortless execution.</h2>
+          <a href="mailto:automation@gauvreaucpa.ca" class="btn-primary">Request access →</a>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      © 2026 Gauvreau Accounting Tax Law Advisory. Licensed software.
+    </div>
+  </footer>
+
+  <script is:inline>
+    // Scroll progress
+    const progress = document.getElementById('progress-bar');
+    if (progress) {
+      window.addEventListener('scroll', () => {
+        const h = document.documentElement.scrollHeight - window.innerHeight;
+        if (h > 0) progress.style.width = (window.scrollY / h * 100) + '%';
+      }, { passive: true });
+    }
+
+    // IntersectionObserver reveals
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    }
+  </script>
+</SubpageLayout>

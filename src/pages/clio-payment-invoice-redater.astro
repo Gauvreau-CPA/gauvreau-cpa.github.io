@@ -1,0 +1,537 @@
+---
+import SubpageLayout from '../layouts/SubpageLayout.astro';
+---
+<SubpageLayout title="Payment & Invoice Redater -- Gauvreau Accounting" description="Back-date or forward-date payments and invoices with inline editing and dry-run validation.">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-hover: #1c2230;  
+    --border: #30363d;
+    --text-primary: #f0ebe0;
+    --text-body: #8b949e;
+    --text-muted: #6e7681;
+    --accent: #d4a843;
+    --success: #3fb950;
+    --warn: #f0883e;
+    --error: #f85149;
+    --font-serif: 'Cormorant Garamond', Georgia, serif;
+    --font-mono: 'DM Mono', 'SF Mono', monospace;
+    --dur-instant: 80ms;
+    --dur-quick: 180ms;
+    --dur-base: 320ms;
+    --dur-scene: 600ms;
+    --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  main {
+    background: var(--bg);
+    color: var(--text-body);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    padding-bottom: 80px;
+    position: relative;
+    overflow-x: hidden;
+  }
+  
+  canvas#ambient-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .content-wrapper {
+    position: relative;
+    z-index: 10;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  
+  .nav-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    background: rgba(13, 17, 23, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+  }
+  
+  .nav-left { display: flex; align-items: center; gap: 12px; }
+  .prompt { color: var(--accent); font-family: var(--font-mono); font-weight: bold; }
+  .logo { height: 16px; width: auto; opacity: 0.9; }
+  .back-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color var(--dur-quick) var(--ease-enter);
+  }
+  .back-link:hover { color: var(--accent); }
+  
+  #progress-bar {
+    position: absolute;
+    bottom: -1px; left: 0;
+    height: 1px;
+    background: var(--accent);
+    width: 0%;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity var(--dur-scene) var(--ease-enter), transform var(--dur-scene) var(--ease-enter);
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  section { margin-top: 120px; content-visibility: auto; }
+  
+  .hero { margin-top: 160px; text-align: left; }
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 12px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    border-radius: 4px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 4rem;
+    color: var(--text-primary);
+    line-height: 1.1;
+    margin-bottom: 24px;
+  }
+  .tagline { font-size: 1.2rem; max-width: 600px; line-height: 1.6; }
+  
+  .eyebrow {
+    color: var(--accent);
+    text-transform: uppercase;
+    font-size: 14px;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+  .section-title {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+  }
+  
+  .video-section {
+    margin-top: 80px;
+    margin-bottom: 120px;
+  }
+  .video-wrapper {
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    transition: transform var(--dur-scene) var(--ease-spring), border-color var(--dur-base) var(--ease-enter), box-shadow var(--dur-base) var(--ease-enter);
+  }
+  .video-wrapper:hover {
+    border-color: var(--accent);
+    box-shadow: 0 32px 100px rgba(212, 168, 67, 0.15), 0 0 0 1px rgba(212, 168, 67, 0.2) inset;
+    transform: translateY(-4px);
+  }
+  .video-header {
+    height: 38px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    position: relative;
+    z-index: 2;
+  }
+  .window-controls {
+    display: flex;
+    gap: 8px;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .dot.close { background: #ff5f56; opacity: 0.8; }
+  .dot.min { background: #ffbd2e; opacity: 0.8; }
+  .dot.max { background: #27c93f; opacity: 0.8; }
+  .window-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+  .video-body {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    background: #050505;
+  }
+
+  
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    transition: border-color var(--dur-base) var(--ease-enter);
+  }
+  .card:hover { border-color: var(--accent); }
+  .card h3 { color: var(--text-primary); margin-bottom: 12px; font-size: 1.2rem; }
+  
+  .step-flow { display: flex; flex-direction: column; gap: 16px; font-family: var(--font-mono); }
+  .step { display: flex; align-items: flex-start; gap: 16px; }
+  .step-num { color: var(--accent); font-weight: bold; }
+  .step-arrow { color: var(--border); margin-left: 8px; }
+  
+  .before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .ba-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px;
+  }
+  .ba-col.before { border-left: 4px solid var(--error); }
+  .ba-col.after { border-left: 4px solid var(--success); }
+  .ba-col h3 { color: var(--text-primary); margin-bottom: 16px; }
+  
+  details {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0;
+    font-family: var(--font-mono);
+  }
+  summary {
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  details p { margin-top: 12px; color: var(--text-muted); }
+  
+  .cta-section { text-align: center; margin-top: 160px; padding: 80px 0; border-top: 1px solid var(--border); }
+  .terminal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px 24px;
+    border-radius: 8px;
+    display: inline-block;
+    color: var(--text-primary);
+    margin-bottom: 32px;
+    font-family: var(--font-mono);
+  }
+  .cta-section h2 {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 3rem;
+    color: var(--text-primary);
+    margin-bottom: 32px;
+  }
+  .btn {
+    background: var(--accent);
+    color: var(--bg);
+    padding: 16px 32px;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    display: inline-block;
+    transition: opacity var(--dur-quick) var(--ease-enter);
+  }
+  .btn:hover { opacity: 0.9; }
+  
+  footer {
+    text-align: center;
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 80px;
+  }
+</style>
+<main>
+  <canvas id="ambient-canvas"></canvas>
+  
+  <div class="nav-bar">
+    <div class="nav-left">
+      <span class="prompt">$</span>
+      <img src="https://gauvreaucpa.ca/hs-fs/hubfs/Mobile%20Logo_-1.png" alt="Gauvreau" class="logo" />
+    </div>
+    <a href="../" class="back-link">← Suite</a>
+    <div id="progress-bar"></div>
+  </div>
+  
+  <div class="content-wrapper">
+    <div class="hero">
+      <div class="badge reveal">[READY]</div>
+      <h1 tabindex="-1" class="reveal">Payment &amp; Invoice Redater</h1>
+      <p class="tagline reveal">Back-date or forward-date payments and invoices with inline editing and dry-run validation.</p>
+    </div>
+    
+    <section class="video-section reveal">
+      <div class="video-wrapper">
+        <div class="video-header">
+          <div class="window-controls">
+            <span class="dot close"></span>
+            <span class="dot min"></span>
+            <span class="dot max"></span>
+          </div>
+          <div class="window-title">tutorial.mp4</div>
+        </div>
+        <div class="video-body">
+          <iframe 
+            src="https://www.youtube.com/embed/KQg74WiMKEs?autoplay=1&mute=1&loop=1&playlist=KQg74WiMKEs&rel=0&modestbranding=1" 
+            title="Clio Payment & Invoice Redater Tutorial" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+          ></iframe>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">The Problem</div>
+      <h2 class="section-title reveal">Misaligned liability dates</h2>
+      <p class="reveal">Payment data all over the place. Payments can't match invoices, wrong dates create reporting problems, and trust liabilities get misaligned.</p>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">How It Works</div>
+      <h2 class="section-title reveal">The 4-step flow</h2>
+      <div class="step-flow reveal">
+        <div class="step">
+          <span class="step-num">1.</span>
+          <div>load liability transactions</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <span class="step-num">2.</span>
+          <div>edit dates inline</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <span class="step-num">3.</span>
+          <div>dry-run validates changes</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <span class="step-num">4.</span>
+          <div>post with full audit log</div>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">Features</div>
+      <h2 class="section-title reveal">What the tool does</h2>
+      <div class="cards">
+        <div class="card reveal">
+          <h3>Back-date payments</h3>
+          <p>Easily move payments to the correct historical date for accurate reporting.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Forward-date invoices</h3>
+          <p>Align invoices with future payments without breaking existing reconciliation.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Dry-run mode before posting</h3>
+          <p>Safely validate all your date changes before committing them to Clio.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Inline bulk editing</h3>
+          <p>Update dozens of transaction dates directly from a single interface.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Immutable audit log</h3>
+          <p>Maintain complete compliance with a secure record of every date change.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Trust audit support</h3>
+          <p>Ensure trust liabilities align perfectly with your accounting reports.</p>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">Comparison</div>
+      <h2 class="section-title reveal">Manual vs Automated</h2>
+      <div class="before-after">
+        <div class="ba-col before reveal">
+          <h3>Manual</h3>
+          <p>Find payment in Clio, remember date constraints, manually update, hope nothing breaks, no audit trail.</p>
+        </div>
+        <div class="ba-col after reveal">
+          <h3>Automated</h3>
+          <p>Load workspace, edit dates inline, dry-run validates the batch, post with immutable audit log, trust report updated instantly.</p>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">Benefits</div>
+      <h2 class="section-title reveal">Why it matters</h2>
+      <div class="cards">
+        <div class="card reveal">
+          <h3>Correct liability dates</h3>
+          <p>Ensure your financials are accurate down to the day.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Dry-run safety net</h3>
+          <p>Catch conflicts before they ever touch your Clio data.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Faster month-end corrections</h3>
+          <p>No more tedious manual Clio navigation.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Trust compliance maintained</h3>
+          <p>Rest easy knowing trust records perfectly match reality.</p>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="eyebrow reveal">FAQ</div>
+      <h2 class="section-title reveal">Common questions</h2>
+      <details class="reveal">
+        <summary>What's dry-run mode?</summary>
+        <p>It checks all your proposed date changes against Clio's API to ensure they won't cause conflicts, without actually making the change.</p>
+      </details>
+      <details class="reveal">
+        <summary>Does it update trust records?</summary>
+        <p>Yes, trust liabilities are updated accordingly to keep everything perfectly synced.</p>
+      </details>
+      <details class="reveal">
+        <summary>How far back can I date?</summary>
+        <p>As far back as Clio's API permits, provided it doesn't break closed accounting periods.</p>
+      </details>
+      <details class="reveal">
+        <summary>Is there a limit on bulk edits?</summary>
+        <p>You can edit and process transactions in large batches for maximum efficiency.</p>
+      </details>
+      <details class="reveal">
+        <summary>What's in the audit log?</summary>
+        <p>Every original date, new date, user who made the change, and the timestamp of the operation.</p>
+      </details>
+      <details class="reveal">
+        <summary>Does it work with all payment types?</summary>
+        <p>It supports the standard payment types recognized within your Clio Manage workspace.</p>
+      </details>
+    </section>
+    
+    <div class="cta-section reveal">
+      <div class="terminal">$ gauvreau-redater --init</div>
+      <h2>Fix the date. Keep the record.</h2>
+      <a href="mailto:contact@gauvreaucpa.ca" class="btn">Contact Gauvreau</a>
+    </div>
+    
+    <footer>
+      <a href="../" class="back-link">← Back to Suite</a>
+    </footer>
+  </div>
+</main>
+<script is:inline>
+  (() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('.reveal').forEach(el => el.classList.add('is-visible'));
+    } else {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    }
+
+    const progress = document.getElementById('progress-bar');
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const h = document.documentElement.scrollHeight - window.innerHeight;
+          if (h > 0) {
+            progress.style.width = (window.scrollY / h * 100) + '%';
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+  })();
+
+  (() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const canvas = document.getElementById('ambient-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { alpha: true });
+    const LINE_SPACING = 56;
+    let w = 0, h = 0, dpr = 1, offset = 0, scrollVel = 0, lastY = window.scrollY;
+    let rafId, isHidden = false;
+    function resize() {
+      dpr = Math.min(devicePixelRatio, 2);
+      w = window.innerWidth; h = window.innerHeight;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    let rTimer;
+    window.addEventListener('resize', () => { clearTimeout(rTimer); rTimer = setTimeout(resize, 100); }, { passive: true });
+    resize();
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      scrollVel = Math.min(Math.abs(y - lastY), 20);
+      lastY = y;
+      setTimeout(() => { scrollVel = Math.max(0, scrollVel - 2); }, 80);
+    }, { passive: true });
+    function draw() {
+      if (isHidden) return;
+      ctx.clearRect(0, 0, w, h);
+      const speed = 0.3 + scrollVel * 0.004;
+      offset = (offset + speed) % LINE_SPACING;
+      const count = Math.ceil(h / LINE_SPACING) + 2;
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(212, 168, 67, 0.04)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < count; i++) {
+        const y = Math.round(i * LINE_SPACING - offset);
+        ctx.moveTo(0, y); ctx.lineTo(w, y);
+      }
+      ctx.stroke();
+      rafId = requestAnimationFrame(draw);
+    }
+    document.addEventListener('visibilitychange', () => {
+      isHidden = document.hidden;
+      if (!isHidden) { offset = 0; draw(); } else cancelAnimationFrame(rafId);
+    });
+    draw();
+  })();
+</script>
+</SubpageLayout>
