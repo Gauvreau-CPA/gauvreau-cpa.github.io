@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reconcile — notifications for firms running Clio and QuickBooks Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14201B; --ink-2:#3D4B44; --ink-3:#6B7A72;
+  --paper:#FAF9F5; --ledger:#E6EDE7; --ledger-line:#C8D8CC;
+  --pine:#1F5D4C; --seal:#8C2F2A; --gold:#B08526;
+  --display:"Newsreader",Georgia,serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --max:1080px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--pine);outline-offset:3px;border-radius:2px}
+
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 18px}
+h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.015em;margin:0}
+h1{font-size:clamp(38px,5.6vw,62px);line-height:1.06}
+h2{font-size:clamp(28px,3.6vw,40px);line-height:1.14}
+h3{font-size:20px;line-height:1.3}
+p{margin:0 0 18px}
+.lede{font-size:clamp(17px,1.9vw,20px);color:var(--ink-2);max-width:56ch;line-height:1.62}
+
+.nav{position:sticky;top:0;z-index:40;background:rgba(250,249,245,.93);backdrop-filter:blur(8px);border-bottom:1px solid var(--ledger-line)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:66px;gap:20px}
+.mark{display:flex;align-items:center;gap:11px;font-family:var(--display);font-size:21px;letter-spacing:-.01em}
+.mark span{width:11px;height:11px;border:2px solid var(--pine);border-radius:50%;border-right-color:var(--seal);border-bottom-color:var(--seal);transform:rotate(-20deg);flex:none}
+.nav-links{display:flex;align-items:center;gap:28px;font-size:14.5px;color:var(--ink-2)}
+.nav-links a{text-decoration:none}
+.nav-links a:hover{color:var(--pine)}
+
+.btn{display:inline-block;background:var(--pine);color:#fff;text-decoration:none;font-size:14.5px;font-weight:500;padding:11px 20px;border-radius:3px;border:1px solid var(--pine);transition:background .18s,transform .18s}
+.btn:hover{background:#17493C;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--pine)}
+.btn-ghost:hover{background:var(--ledger);transform:none}
+.btn-lg{font-size:16px;padding:14px 28px}
+
+.hero{padding:88px 0 56px}
+.hero h1{max-width:16ch;margin-bottom:24px}
+.hero h1 em{font-style:italic;font-weight:300;color:var(--seal)}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:32px}
+
+/* ---- signature: rule → delivery ---- */
+.sig{margin:60px 0 0;display:grid;grid-template-columns:1fr;gap:0}
+.rule-card{background:#fff;border:1px solid var(--ledger-line);border-radius:4px 4px 0 0;border-bottom:none;padding:26px 28px}
+.rule-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--pine);margin-bottom:16px}
+.rule-sentence{font-size:clamp(17px,2.1vw,22px);line-height:1.75;font-family:var(--display);color:var(--ink-2);margin:0}
+.chip{
+  display:inline-block;font-family:var(--mono);font-size:.72em;letter-spacing:.01em;
+  background:var(--ledger);border:1px solid var(--ledger-line);border-radius:3px;
+  padding:2px 8px;color:var(--pine);vertical-align:2px;white-space:nowrap;
+}
+.chip.who{background:#FBF4E4;border-color:#E5D3AC;color:#7A5C15}
+.chip.chan{background:#FDF6F5;border-color:#E3C9C6;color:var(--seal)}
+
+.arrow-down{
+  background:#fff;border-left:1px solid var(--ledger-line);border-right:1px solid var(--ledger-line);
+  text-align:center;padding:0 0 6px;font-family:var(--mono);font-size:15px;color:var(--ledger-line);
+}
+.deliver{
+  background:var(--ink);color:#E8EFE9;border-radius:0 0 4px 4px;padding:22px 28px 20px;
+  opacity:0;transform:translateY(6px);
+}
+.sig.go .deliver{animation:rise .55s ease .25s forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.deliver-head{display:flex;align-items:center;gap:9px;margin-bottom:12px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:#7E9488}
+.deliver-head b{width:7px;height:7px;border-radius:50%;background:#E0736B;display:inline-block}
+.deliver-msg{margin:0 0 16px;font-size:16px;line-height:1.55;color:#DDE7E0}
+.deliver-msg strong{color:#fff;font-weight:600}
+.deliver-msg .fig{font-family:var(--mono);font-variant-numeric:tabular-nums;color:#fff}
+.deliver-foot{
+  display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid #2C3B34;padding-top:14px;
+}
+.pill{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+  border:1px solid #33443B;border-radius:2px;padding:4px 9px;color:#94A69B;
+}
+.pill.done{border-color:#3D5D4E;color:#8FBFA2}
+.caption{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:14px;letter-spacing:.02em}
+
+section{padding:76px 0}
+.rule-top{border-top:1px solid var(--ledger-line)}
+.sec-head{max-width:60ch;margin-bottom:44px}
+.sec-head h2{margin-bottom:16px}
+
+/* pillars */
+.pillars{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--ledger-line);border:1px solid var(--ledger-line);border-radius:4px;overflow:hidden}
+.pillar{background:#fff;padding:30px 28px}
+.pillar .n{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+.pillar h3{font-size:19px;margin-bottom:10px}
+.pillar p{font-size:15px;color:var(--ink-2);margin:0;line-height:1.55}
+
+/* noise */
+.noise{background:var(--ink);color:#DDE7E0;border-radius:4px;padding:52px 46px}
+.noise h2{color:#fff;max-width:22ch;margin-bottom:20px}
+.noise p{color:#AEBEB3;max-width:58ch;font-size:17px}
+.noise-list{display:grid;grid-template-columns:repeat(2,1fr);gap:26px 40px;margin-top:38px;padding-top:34px;border-top:1px solid #2C3B34}
+.noise-list h3{font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:#7E9488;margin-bottom:9px;font-weight:400}
+.noise-list p{font-size:15px;color:#C7D5CB;margin:0;line-height:1.55}
+
+/* catalogue */
+.cat-group{border-top:1px solid var(--ledger-line);padding:34px 0}
+.cat-group:last-child{border-bottom:1px solid var(--ledger-line)}
+.cat-inner{display:grid;grid-template-columns:250px 1fr;gap:40px;align-items:start}
+.cat-label h3{font-size:23px;margin-bottom:8px}
+.cat-label p{font-size:14px;color:var(--ink-3);margin:0;line-height:1.5}
+.cat-label .who{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.alert-item{padding:15px 0;border-bottom:1px solid #EDF0EC}
+.alert-item:last-child{border-bottom:none}
+.alert-item b{font-weight:500;font-size:15.5px;line-height:1.4;display:block;margin-bottom:5px}
+.alert-item>span{font-size:14.5px;color:var(--ink-2);line-height:1.5;display:block;margin-bottom:9px}
+.route{font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--ink-3)}
+.route i{font-style:normal;color:var(--pine)}
+.route s{text-decoration:none;color:var(--ledger-line);margin:0 7px}
+
+/* phases */
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.phase{border:1px solid var(--ledger-line);border-radius:4px;padding:28px 26px;background:#fff}
+.phase .n{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--pine);text-transform:uppercase;margin-bottom:14px}
+.phase h3{font-size:19px;margin-bottom:10px}
+.phase p{font-size:15px;color:var(--ink-2);margin:0 0 16px;line-height:1.55}
+.phase .when{font-family:var(--mono);font-size:12px;color:var(--ink-3);border-top:1px solid #EDF0EC;padding-top:13px}
+
+.cat-tagline{
+  font-family:var(--display);font-size:17px;font-style:italic;font-weight:300;
+  color:var(--pine);line-height:1.5;margin:14px 0 0;padding-top:14px;
+  border-top:1px solid var(--ledger-line);
+}
+.alert-item{display:grid;grid-template-columns:34px 1fr;gap:0 14px}
+.alert-item .num{
+  font-family:var(--mono);font-size:12px;color:var(--ink-3);
+  font-variant-numeric:tabular-nums;padding-top:2px;grid-row:1/4;
+}
+.alert-item b,.alert-item>span,.alert-item .route{grid-column:2}
+
+.cta{text-align:center;padding:88px 0 96px}
+.cta h2{margin-bottom:18px}
+.cta .lede{margin:0 auto 32px}
+.cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+footer{border-top:1px solid var(--ledger-line);padding:34px 0 48px;font-size:13.5px;color:var(--ink-3)}
+footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+footer p{margin:0;max-width:62ch;line-height:1.55}
+
+@media(max-width:860px){
+  .cat-inner{grid-template-columns:1fr;gap:22px}
+  .pillars,.noise-list{grid-template-columns:1fr}
+  .phases{grid-template-columns:1fr}
+  .noise{padding:38px 28px}
+  .nav-links a:not(.btn){display:none}
+}
+@media(max-width:620px){
+  .hero{padding:56px 0 40px}
+  section{padding:56px 0}
+  .rule-card,.deliver{padding-left:20px;padding-right:20px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .deliver{opacity:1;transform:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <div class="mark"><span></span>Reconcile</div>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#alerts">What you can be told</a>
+      <a href="#noise">Noise control</a>
+      <a class="btn" href="#book">Book a walkthrough</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Notifications for firms running Clio and QuickBooks Online</p>
+    <h1>Your systems already know. The person who should act <em>doesn't.</em></h1>
+    <p class="lede">Nothing in your firm is missing data. A matter closes, a payment lands, a trust balance runs low — it's all recorded, correctly, in one system or the other. It just sits there until someone thinks to go looking. Reconcile turns those moments into a message, sent to one named person, in the app they already have open.</p>
+    <div class="hero-actions">
+      <a class="btn btn-lg" href="#book">Book a walkthrough</a>
+      <a class="btn btn-lg btn-ghost" href="#alerts">See what you can be told</a>
+    </div>
+
+    <div class="sig" id="sig">
+      <div class="rule-card">
+        <p class="rule-tag">A rule, written the way you'd say it</p>
+        <p class="rule-sentence">
+          When a matter closes with <span class="chip">more than $5,000</span> of recorded time and no invoice raised, tell <span class="chip who">the responsible fee earner</span> and <span class="chip who">the managing partner</span> on <span class="chip chan">Slack</span>, <span class="chip">straight away</span>.
+        </p>
+      </div>
+      <div class="arrow-down">↓</div>
+      <div class="deliver">
+        <div class="deliver-head"><b></b>#firm-finance &nbsp;·&nbsp; today, 9:04</div>
+        <p class="deliver-msg"><strong>Matter closed with nothing billed.</strong><br>
+        Nguyen — commercial lease closed 14 days ago with <span class="fig">$31,900.00</span> of recorded time and no invoice raised. Responsible: Angela Bell.</p>
+        <div class="deliver-foot">
+          <span class="pill">Sent to 2 people</span>
+          <span class="pill done">Acknowledged by Angela · 9:06</span>
+          <span class="pill">Snooze 7 days</span>
+          <span class="pill">Mute this rule</span>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Illustrative. Your thresholds, your people, your channels.</p>
+  </div>
+</header>
+
+<section id="how" class="rule-top">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">What you're actually buying</p>
+      <h2>A notification service, not another dashboard nobody opens.</h2>
+      <p class="lede">Dashboards require someone to remember to look. Notifications don't. Everything below exists to make sure the right message reaches the right person at a moment they can act on it — and that nothing else reaches them at all.</p>
+    </div>
+    <div class="pillars">
+      <div class="pillar">
+        <p class="n">Routing</p>
+        <h3>Named people, not a firehose</h3>
+        <p>Rules route by fee earner, matter, amount or account. A trust warning goes to whoever holds client money. A large payment goes to the partner. Nobody receives someone else's problem.</p>
+      </div>
+      <div class="pillar">
+        <p class="n">Channels</p>
+        <h3>Where your firm already is</h3>
+        <p>Slack, Teams, or email. Text for the short critical list. There's no new application to log into, no seat to buy for a paralegal who'd use it twice a month.</p>
+      </div>
+      <div class="pillar">
+        <p class="n">Cadence</p>
+        <h3>Urgent now, routine at eight</h3>
+        <p>Each rule gets its own timing. Fraud controls fire immediately. Receivables arrive as one digest at the start of the day. Realisation lands weekly. Nothing arrives at 2am unless you said it should.</p>
+      </div>
+      <div class="pillar">
+        <p class="n">Thresholds</p>
+        <h3>Numbers you set and change</h3>
+        <p>Every amount, day count and watched account is yours. When a threshold turns out to be wrong — and the first ones usually are — it's a field, not a change request.</p>
+      </div>
+      <div class="pillar">
+        <p class="n">Acknowledgement</p>
+        <h3>Someone owns it, or it escalates</h3>
+        <p>A notification can be claimed, and until it is, it's still open. Leave a trust warning unacknowledged past your window and it goes up the chain automatically.</p>
+      </div>
+      <div class="pillar">
+        <p class="n">Record</p>
+        <h3>Who was told, and when</h3>
+        <p>Every notification, acknowledgement, snooze and mute is logged with a timestamp. At month-end that's a trail you can point at rather than a conversation you have to reconstruct.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="noise" class="rule-top">
+  <div class="wrap">
+    <div class="noise">
+      <p class="eyebrow" style="color:#7E9488">The part that decides whether this works</p>
+      <h2>Alerting projects don't fail technically. They fail from noise.</h2>
+      <p>Two weeks in, the channel is unreadable, everyone has muted it, and a genuine trust warning scrolls past unread. That's how nearly all of these end. So restraint is built into the product rather than left to your discipline — the default assumption is that any given message should probably not be sent.</p>
+      <div class="noise-list">
+        <div>
+          <h3>Digest by default</h3>
+          <p>Real-time is reserved for a deliberately short list. Everything else is collected and delivered once.</p>
+        </div>
+        <div>
+          <h3>Repeats collapse</h3>
+          <p>The same matter edited six times in an afternoon produces one notification, not six.</p>
+        </div>
+        <div>
+          <h3>One switch per rule</h3>
+          <p>Anything can be muted in a click, with the reason logged, so people mute a rule instead of the channel.</p>
+        </div>
+        <div>
+          <h3>Quiet hours</h3>
+          <p>Evenings, weekends and holidays hold everything except the list you've marked critical.</p>
+        </div>
+        <div>
+          <h3>Suppressed messages are kept</h3>
+          <p>We record what we chose not to send, so tuning happens against what actually occurred rather than guesswork.</p>
+        </div>
+        <div>
+          <h3>Reviewed at week four</h3>
+          <p>We go through what fired, what was ignored, and what should have fired. Ignored rules get cut, not defended.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="alerts" class="rule-top">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">The catalogue</p>
+      <h2>Nineteen things you can be told</h2>
+      <p class="lede">Every entry is a rule with a threshold, a named recipient and a cadence. The routing shown is a sensible starting point, not a fixed setting. They're in the order we'd recommend switching them on — begin with three.</p>
+    </div>
+
+    <div class="cat-group">
+      <div class="cat-inner">
+        <div class="cat-label">
+          <p class="who">Managing partner</p>
+          <h3>Cash flow</h3>
+          <p class="cat-tagline">You'll know about money the day it moves, not at month-end.</p>
+        </div>
+        <div>
+          <div class="alert-item">
+            <div class="num">01</div>
+            <b>A payment landed</b>
+            <span>Client, amount and matter, in the channel, the moment it's recorded.</span>
+            <div class="route"><i>#firm-finance</i><s>·</s>Slack<s>·</s>Immediately</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">02</div>
+            <b>An invoice passed 45 days</b>
+            <span>Collections slip because nobody noticed in time, not because nobody cared. This doesn't add work — it removes the reason it slips.</span>
+            <div class="route"><i>Credit control</i><s>·</s>Email digest<s>·</s>Daily 8:00</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">03</div>
+            <b>A large invoice actually went out</b>
+            <span>Confirms the bill left the building. Work billed and the invoice sitting in draft is more common than anyone admits, and nothing surfaces it.</span>
+            <div class="route"><i>Billing + fee earner</i><s>·</s>Slack<s>·</s>Immediately</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">04</div>
+            <b>A retainer or trust balance dropped below your floor</b>
+            <span>Work performed against an empty retainer is work you may never collect — and the partner normally finds out weeks after the fact.</span>
+            <div class="route"><i>Fee earner + administrator</i><s>·</s>Slack<s>·</s>Immediately</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">05</div>
+            <b>A payment arrived and was never applied</b>
+            <span>Money received but not matched to an invoice. It looks like receivables that aren't, and it distorts every report until someone clears it.</span>
+            <div class="route"><i>Bookkeeper</i><s>·</s>Email<s>·</s>Daily 8:00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cat-group">
+      <div class="cat-inner">
+        <div class="cat-label">
+          <p class="who">Whoever signs the payments</p>
+          <h3>Fraud and control</h3>
+          <p class="cat-tagline">Any one of these, caught a single time, covers everything else on this page.</p>
+        </div>
+        <div>
+          <div class="alert-item">
+            <div class="num">06</div>
+            <b>A supplier's bank details were changed</b>
+            <span>Business email compromise almost always runs through a quiet edit to a supplier's payment information. It's the field nobody watches. If you take one rule from this page, take this one.</span>
+            <div class="route"><i>Payments approver</i><s>·</s>Text + email<s>·</s>Immediately</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">07</div>
+            <b>A new supplier was created</b>
+            <span>Every invented vendor begins with a real record. Switched on alongside the rule above, the two form a floor you can put in front of an auditor.</span>
+            <div class="route"><i>Payments approver</i><s>·</s>Email<s>·</s>Daily 8:00</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">08</div>
+            <b>A payment above your threshold went out without a matching approval</b>
+            <span>Catches deliberate misuse and ordinary process drift equally well, and most of what it finds will be the second kind.</span>
+            <div class="route"><i>Approver + partner</i><s>·</s>Slack<s>·</s>Immediately</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">09</div>
+            <b>A credit note or write-off was issued</b>
+            <span>The tidiest way a receivable is made to disappear. Partners want sight of these even in firms with no concerns whatsoever.</span>
+            <div class="route"><i>Partner</i><s>·</s>Email<s>·</s>Weekly</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">10</div>
+            <b>Activity outside working hours</b>
+            <span>Not evidence of anything on its own. A cheap tripwire that costs one rule and occasionally starts a useful conversation.</span>
+            <div class="route"><i>Administrator</i><s>·</s>Email<s>·</s>Daily 8:00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cat-group">
+      <div class="cat-inner">
+        <div class="cat-label">
+          <p class="who">Office manager</p>
+          <h3>Time you get back</h3>
+          <p class="cat-tagline">Stop opening QuickBooks to check whether something happened.</p>
+        </div>
+        <div>
+          <div class="alert-item">
+            <div class="num">11</div>
+            <b>A bill is waiting on approval</b>
+            <span>Anything over your threshold reaches the approver directly, which removes the "did you see my email" loop entirely.</span>
+            <div class="route"><i>Named approver</i><s>·</s>Slack<s>·</s>Immediately</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">12</div>
+            <b>Month-end close steps are due</b>
+            <span>Nudges that follow your own close calendar. A small thing, used every single month, which is what makes it stick.</span>
+            <div class="route"><i>Bookkeeper + administrator</i><s>·</s>Email<s>·</s>On your close calendar</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">13</div>
+            <b>A reconciliation gap opened</b>
+            <span>Surfaces the break while it's one transaction old instead of thirty days old and cold.</span>
+            <div class="route"><i>Bookkeeper</i><s>·</s>Email<s>·</s>Daily 8:00</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">14</div>
+            <b>The same bill appears twice</b>
+            <span>Same supplier, same amount, dates close together. Paying twice is embarrassing and surprisingly routine.</span>
+            <div class="route"><i>Bookkeeper</i><s>·</s>Slack<s>·</s>Immediately</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cat-group">
+      <div class="cat-inner">
+        <div class="cat-label">
+          <p class="who">Practice manager and partners</p>
+          <h3>Across Clio and QuickBooks</h3>
+          <p class="cat-tagline">The questions neither system can answer on its own.</p>
+        </div>
+        <div>
+          <div class="alert-item">
+            <div class="num">15</div>
+            <b>Work recorded in Clio with no invoice in QuickBooks</b>
+            <span>Unbilled work, aging. This is revenue the firm has already earned and never asked for — usually the most compelling number anyone can put in front of a managing partner.</span>
+            <div class="route"><i>Fee earner + partner</i><s>·</s>Email<s>·</s>Monday 8:00</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">16</div>
+            <b>A matter closed in Clio with the receivable still open</b>
+            <span>The file is finished, the money isn't in, and it has dropped off everyone's task list permanently.</span>
+            <div class="route"><i>Credit control + partner</i><s>·</s>Email<s>·</s>Weekly</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">17</div>
+            <b>The trust ledger stopped tying to the trust bank</b>
+            <span>Reconciliation drift between the two. In a legal setting that's a compliance exposure rather than a bookkeeping nit, which is why it's checked daily instead of monthly.</span>
+            <div class="route"><i>Named individual</i><s>·</s>Email + text<s>·</s>Immediately, escalates in 4h</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">18</div>
+            <b>Hours recorded against revenue realised</b>
+            <span>Realisation by timekeeper, delivered weekly, without anyone having to build a report to get at it.</span>
+            <div class="route"><i>Partner</i><s>·</s>Email<s>·</s>Friday 16:00</div>
+          </div>
+          <div class="alert-item">
+            <div class="num">19</div>
+            <b>A client in Clio with no customer record in QuickBooks</b>
+            <span>The gap that quietly breaks every downstream report until somebody reconciles the two by hand.</span>
+            <div class="route"><i>Practice manager</i><s>·</s>Email<s>·</s>Daily 8:00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="rule-top">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Getting started</p>
+      <h2>Three rules first. The rest once those have earned their place.</h2>
+      <p class="lede">We deliberately begin with fewer notifications than you'll want, because the fastest way to kill this is to switch on twenty and let the firm learn to ignore them.</p>
+    </div>
+    <div class="phases">
+      <div class="phase">
+        <p class="n">First</p>
+        <h3>Three rules, one channel</h3>
+        <p>Chosen with you, routed to named people, running against live data. Enough to feel the difference, small enough that every message still gets read.</p>
+        <p class="when">Around two weeks</p>
+      </div>
+      <div class="phase">
+        <p class="n">Week four</p>
+        <h3>Tune against what happened</h3>
+        <p>We review what fired, what was ignored and what was suppressed. Thresholds move, rules get cut, and more go on one at a time.</p>
+        <p class="when">Half a day</p>
+      </div>
+      <div class="phase">
+        <p class="n">Ongoing</p>
+        <h3>Escalation and reporting</h3>
+        <p>Acknowledgement windows, escalation paths, and the monthly record of who was told what — the part that matters when someone asks.</p>
+        <p class="when">Once the basics are trusted</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="book" class="cta rule-top">
+  <div class="wrap">
+    <p class="eyebrow">Next step</p>
+    <h2>Thirty minutes, your own numbers.</h2>
+    <p class="lede">Bring up your receivables ageing and your unbilled time before the call. We'll walk through which notifications would have fired at your firm last quarter, and who would have received them. You'll know inside half an hour whether it's worth anything to you.</p>
+    <div class="cta-actions">
+      <a class="btn btn-lg" href="mailto:hello@example.com?subject=Reconcile%20walkthrough">Book a walkthrough</a>
+      <a class="btn btn-lg btn-ghost" href="mailto:hello@example.com?subject=Reconcile%20rule%20list">Get the full rule list</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="mark" style="font-size:17px"><span></span>Reconcile</div>
+    <p>Independent software for firms using Clio and QuickBooks Online. Not affiliated with, endorsed by, or a product of Clio or Intuit. Connects with read-only access; no client money is moved.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var el=document.getElementById('sig');
+  if(!el)return;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches||!('IntersectionObserver' in window)){el.classList.add('go');return;}
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('go');io.unobserve(e.target);}});},{threshold:.2});
+  io.observe(el);
+})();
+</script>
+</body>
+</html>
