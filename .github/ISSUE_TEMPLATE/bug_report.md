@@ -1,12 +1,14 @@
 ---
 name: Bug report
-about: Report a problem
+about: Report a problem with the site or a tool demo
 title: "[Bug] "
 labels: bug
 assignees: ''
 ---
 
 ## Describe the bug
+
+<!-- A clear description of what the bug is. -->
 
 ## Steps to reproduce
 
@@ -16,10 +18,14 @@ assignees: ''
 
 ## Expected behavior
 
+<!-- What you expected to happen. -->
+
 ## Environment
 
-- OS:
-- Runtime / language version:
-- Relevant files / commands:
+- OS / browser:
+- Node version (if local):
+- URL / page affected:
 
 ## Additional context
+
+<!-- Screenshots, logs, or anything else. -->
