@@ -9,18 +9,12 @@
 ## Type of change
 
 - [ ] Bug fix
-- [ ] New feature / content
-- [ ] UI / styling
+- [ ] New feature
+- [ ] Refactor / tooling
 - [ ] Docs
-- [ ] Chore / tooling
 
 ## Checklist
 
-- [ ] `npm run build` passes locally
-- [ ] I followed the coding standards in CONTRIBUTING.md
-- [ ] Animations respect `prefers-reduced-motion`
-- [ ] No secrets or server runtime added
-
-## Screenshots (if UI)
-
-<!-- Attach before/after if relevant -->
+- [ ] Build/test passes locally
+- [ ] No secrets or client data committed
+- [ ] Docs updated if behavior changed
