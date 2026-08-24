@@ -59,3 +59,15 @@ Use `astro dev --background` for a managed background server
   `live_pretty.html`, and `qbo-notifications.html` are static demo artifacts, as
   is `build_index.py`.
 - Don't commit `node_modules`, `.astro`, or `dist` (see `.gitignore`).
+
+## Code Organization Standard (Gauvreau-CPA)
+
+- One repo = one focused integration tool.
+- Do **not** commit build artifacts: `build/`, `dist/`, `__pycache__/`,
+  `*.spec`, `.venv/`, `node_modules/`, `target/` (see `.gitignore`).
+- Python: put code in `src/<package>/` with a `python -m <package>` entry
+  point; tests in `tests/`; config in `pyproject.toml`.
+- File names use `snake_case.py` (no spaces, no camelCase).
+- Repeated logic (Clio / QBO / Excel clients) belongs in the shared
+  `gauvreau-common` package, not copied into every repo.
+- Keep scripts small and single-purpose.
