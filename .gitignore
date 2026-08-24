@@ -22,3 +22,16 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# --- Gauvreau-CPA build artifacts (do not commit) ---
+__pycache__/
+*.py[cod]
+*.spec
+build/
+dist/
+.venv/
+venv/
+.env
+*.egg-info/
+node_modules/
+target/
