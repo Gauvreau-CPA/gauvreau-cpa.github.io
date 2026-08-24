@@ -1,31 +1,43 @@
 # Contributing
 
-Thanks for your interest in this Gauvreau practice-automation repository.
+Thanks for your interest in the Gauvreau Practice Automation Suite.
 
-This repository is part of Gauvreau's suite of legal/accounting integration
-tools (Clio Manage, QuickBooks Online, and related practice-management systems).
-Active product development is managed internally; this guide covers contributions
-to the code in this repository.
+This repository hosts the **static showcase site** for Gauvreau's Clio Manage /
+QuickBooks Online automation tools. Active development of the licensed product
+is managed internally; this guide covers contributions to the website itself.
 
 ## Getting started
 
-1. Install the toolchain for this project's language (see the relevant section
-   in README.md / CLAUDE.md).
-2. Install dependencies and run a build or test locally.
-3. Open a pull request against the default branch and fill out the template.
+```bash
+npm install
+npm run dev
+```
+
+Requires **Node.js ≥ 22.12**.
+
+## Branching & PRs
+
+1. Create a feature branch off `main` (e.g. `fix/preloader-flash`).
+2. Keep changes focused and small.
+3. Run `npm run build` locally and make sure it succeeds.
+4. Open a PR against `main` and fill out the template.
 
 ## Coding standards
 
-- Keep changes focused and small.
-- Follow the language's standard style and conventions.
-- Add or update documentation when behavior changes.
-- Do not commit secrets, credentials, or client data.
+- **Astro + TypeScript.** Keep components in `src/`.
+- Reuse design tokens from `:root` in `src/layouts/Layout.astro`.
+- Animations must be `requestAnimationFrame`-based and respect
+  `prefers-reduced-motion`.
+- Fonts are self-hosted under `public/fonts/` (plus a Google Fonts fallback link
+  in `Layout.astro`); keep families in sync if changed.
+- Keep the site fully static — no server runtime, no secrets.
 
 ## Reporting issues
 
-Please use the issue templates. For security concerns, follow SECURITY.md and do
-**not** open a public issue.
+Please use the issue templates. For security concerns, follow
+[SECURITY.md](./SECURITY.md) and do **not** open a public issue.
 
 ## Code of conduct
 
-All contributors are expected to follow our Code of Conduct (CODE_OF_CONDUCT.md).
+All contributors are expected to follow our
+[Code of Conduct](./CODE_OF_CONDUCT.md).
