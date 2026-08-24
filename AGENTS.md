@@ -1,22 +1,52 @@
-## Development
+# AGENTS.md — Contributor & Agent Guide
 
-When starting the dev server, use background mode:
+This file helps autonomous coding agents and human contributors work effectively
+in the **Gauvreau Practice Automation Suite** repository.
 
-```
-astro dev --background
-```
+## Repository purpose
 
-Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
+A static **Astro** website that showcases Gauvreau's Clio Manage / QuickBooks
+Online practice-automation tools. It is documentation + an interactive demo, not
+the licensed product binaries.
 
-## Documentation
+## Setup
 
-Full documentation: https://docs.astro.build
+1. Install **Node.js ≥ 22.12**.
+2. `npm install`.
+3. `npm run dev` (or `astro dev --background`).
 
-Consult these guides before working on related tasks:
+## Commands
 
-- [Adding pages, dynamic routes, or middleware](https://docs.astro.build/en/guides/routing/)
-- [Working with Astro components](https://docs.astro.build/en/basics/astro-components/)
-- [Using React, Vue, Svelte, or other framework components](https://docs.astro.build/en/guides/framework-components/)
-- [Adding or managing content](https://docs.astro.build/en/guides/content-collections/)
-- [Adding styles or using Tailwind](https://docs.astro.build/en/guides/styling/)
-- [Supporting multiple languages](https://docs.astro.build/en/guides/internationalization/)
+| Command | Action |
+| --- | --- |
+| `npm run dev` | Dev server at `localhost:4321` |
+| `npm run build` | Production build → `./dist` |
+| `npm run preview` | Preview the build |
+| `npm run astro -- --help` | Astro CLI help |
+
+## File map
+
+- `astro.config.mjs` — config + custom Vite directory-index plugin (keep it).
+- `src/layouts/` — `Layout.astro` (global shell + tokens), `SubpageLayout.astro`.
+- `src/pages/` — routes; `index.astro` is the landing/showcase.
+- `src/components/` — `Preloader/`, `ambient/`.
+- `src/styles/global.css` — global styles.
+- `public/fonts/` — self-hosted variable fonts (plus a Google Fonts fallback link
+  in `Layout.astro`).
+
+## Working conventions
+
+- Astro + TypeScript; isolate interactivity in client scripts.
+- Reuse CSS design tokens from `:root` in `Layout.astro`.
+- Keep animations `requestAnimationFrame`-based and `prefers-reduced-motion`-safe.
+- Keep the site static; never add secrets or a server runtime.
+
+## Pull requests
+
+- Open PRs against `main`. CI builds the site before merge.
+- Follow the PR template; describe the change and link any related issue.
+- Keep changes focused; one concern per PR.
+
+## License
+
+All rights reserved. See [LICENSE](./LICENSE).
