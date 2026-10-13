@@ -1,0 +1,568 @@
+---
+import SubpageLayout from '../layouts/SubpageLayout.astro';
+---
+<SubpageLayout title="QBO Lite - QuickBooks Online, Faster - Gauvreau Accounting" description="A Chrome extension that speeds up QuickBooks Online by blocking trackers, answering background calls instantly and timing every page and report.">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-hover: #1c2230;
+      --border: #30363d;
+      --text-primary: #f0ebe0;
+      --text-body: #8b949e;
+      --text-muted: #6e7681;
+      --accent: #d4a843;
+      --success: #3fb950;
+      --warn: #f0883e;
+      --error: #f85149;
+      
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-mono: 'DM Mono', 'SF Mono', monospace;
+      
+      --dur-instant: 80ms;
+      --dur-quick: 180ms;
+      --dur-base: 320ms;
+      --dur-scene: 600ms;
+      --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+      --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      
+      --radius-lg: 8px;
+    }
+
+    main {
+      background-color: var(--bg);
+      color: var(--text-body);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    #ambient-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .content-wrapper {
+      position: relative;
+      z-index: 10;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 100px 24px 40px;
+    }
+
+    .top-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 1px;
+      background: var(--accent);
+      z-index: 101;
+      width: 0%;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color var(--dur-quick) var(--ease-enter);
+    }
+    .nav-link:hover { color: var(--text-primary); }
+    .prompt { color: var(--accent); margin-right: 8px; }
+
+    h1, h2, h3, h4 {
+      font-weight: 400;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-style: italic;
+      line-height: 1.1;
+    }
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-style: italic;
+    }
+    .section-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .section-body {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text-body);
+      max-width: 600px;
+      margin-bottom: 32px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      background: rgba(212, 168, 67, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      color: var(--accent);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 24px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity var(--dur-scene) var(--ease-exit), transform var(--dur-scene) var(--ease-exit);
+    }
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+    }
+
+    section { padding: 60px 0; }
+    .below-fold { content-visibility: auto; contain-intrinsic-size: 600px; }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: border-color var(--dur-base) var(--ease-enter);
+    }
+    .card:hover { border-color: var(--accent); }
+    .card h3 {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    .card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+
+    .flow-steps {
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .flow-step {
+      display: flex; gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      align-items: flex-start;
+    }
+    .flow-num {
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 1.2rem;
+    }
+    .flow-step h4 { font-family: var(--font-mono); font-size: 1.1rem; margin-bottom: 4px; }
+    .flow-step p { font-size: 0.9rem; color: var(--text-muted); }
+
+    .check-list { list-style: none; padding: 0; }
+    .check-list li {
+      position: relative;
+      padding-left: 24px;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+    .check-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 768px) { .compare-grid { grid-template-columns: 1fr; } }
+    .compare-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+    .compare-card.before { border-top: 2px solid var(--error); }
+    .compare-card.after { border-top: 2px solid var(--success); }
+    .compare-card h3 { font-family: var(--font-mono); font-size: 1.2rem; }
+    .compare-card ul { list-style: none; padding: 0; }
+    .compare-card li {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .compare-card li:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-btn {
+      width: 100%; background: none; border: none;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 1rem; text-align: left; padding: 24px 0;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    }
+    .faq-btn:hover { color: var(--accent); }
+    .faq-content {
+      max-height: 0; overflow: hidden;
+      transition: max-height var(--dur-base) var(--ease-spring);
+    }
+    .faq-content p { padding-bottom: 24px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+
+    .cta-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 48px;
+      margin-top: 40px;
+    }
+    .cta-box h2 {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: clamp(2rem, 4vw, 2.5rem);
+    }
+    .cta-btn {
+      display: inline-block; margin-top: 24px; padding: 12px 24px;
+      background: transparent; color: var(--accent); border: 1px solid var(--accent);
+      text-decoration: none; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em;
+      transition: all var(--dur-quick) var(--ease-enter);
+    }
+    .cta-btn:hover { background: var(--accent); color: var(--bg); }
+
+    .footer { text-align: center; padding: 40px 0; border-top: 1px solid var(--border); margin-top: 80px; }
+  </style>
+
+  <main>
+    <div id="progress-bar"></div>
+    <canvas id="ambient-canvas"></canvas>
+    
+    <nav class="top-nav">
+      <div class="nav-left">
+        <span class="prompt">$</span>
+        <img loading="lazy" decoding="async" src="https://gauvreaucpa.ca/hs-fs/hubfs/Mobile%20Logo_-1.png" alt="Gauvreau" style="height:14px;width:auto;display:block;">
+      </div>
+      <div class="nav-right">
+        <a href="/" class="nav-link">&larr; Back to Suite</a>
+      </div>
+    </nav>
+
+    <div class="content-wrapper">
+      <section id="hero" class="reveal">
+        <div class="badge">[STATUS: LIVE] &middot; Chrome Extension</div>
+        <h1>QBO Lite &mdash; QuickBooks Online, Faster</h1>
+        <p class="section-body" style="font-size: 1.2rem; max-width: 800px;">
+          A Chrome extension that makes QuickBooks Online do less work in your browser: it stops ads, tracking and background extras QuickBooks doesn't need, and times every page and report.
+        </p>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">The Challenge</span>
+        <h2 class="section-title reveal">QuickBooks loads far more than your books</h2>
+        <p class="section-body reveal">
+          Every QuickBooks page pulls in ad trackers, usage logging, promo widgets, AI assistants and onboarding tips. Your team waits while the browser chews through it.
+        </p>
+
+        <div class="card-grid">
+          <div class="card reveal">
+            <h3>Megabytes of extra code</h3>
+            <p>Marketing widgets, tips and the AI assistant add about 10 MB of code to every page &mdash; the support screen-share plugin another 10 MB.</p>
+          </div>
+          <div class="card reveal">
+            <h3>Tracking on every click</h3>
+            <p>Ad pixels, clickstream logging and analytics vendors run in the background of every screen.</p>
+          </div>
+          <div class="card reveal">
+            <h3>Repeated background calls</h3>
+            <p>Feature flags, experiments and company settings are fetched again and again on each page load.</p>
+          </div>
+          <div class="card reveal">
+            <h3>No idea what's slow</h3>
+            <p>Reports and screens feel slow, but nobody can say how slow, or whether it's getting better or worse.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Measured</span>
+        <h2 class="section-title reveal">Tested on a real Banking page</h2>
+        <p class="section-body reveal">A recorded QuickBooks Banking session, replayed in Chrome with and without QBO Lite.</p>
+
+        <div class="compare-grid">
+          <div class="compare-card before reveal">
+            <h3 style="color: var(--error); margin-bottom: 16px;">Without QBO Lite</h3>
+            <ul>
+              <li>27.6 MB of JavaScript (655 files)</li>
+              <li>18 to 20 s of main-thread CPU</li>
+              <li>38 flag, experiment and settings calls on a reload</li>
+            </ul>
+          </div>
+          <div class="compare-card after reveal">
+            <h3 style="color: var(--success); margin-bottom: 16px;">With QBO Lite</h3>
+            <ul>
+              <li>14.7 MB of JavaScript (464 files)</li>
+              <li>13 to 16 s of main-thread CPU</li>
+              <li>4 flag, experiment and settings calls on a reload</li>
+              <li style="color: var(--success);">Screen and all 7 header menus pixel-identical</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Workflow</span>
+        <h2 class="section-title reveal">How it works</h2>
+
+        <div class="flow-steps reveal">
+          <div class="flow-step">
+            <span class="flow-num">01</span>
+            <div>
+              <h4>Add to Chrome</h4>
+              <p>Click the office link, then Add to Chrome. About a minute, and updates install on their own.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <span class="flow-num">02</span>
+            <div>
+              <h4>Pick a protection level</h4>
+              <p>Off, Normal, Strong or Maximum. Normal is safe for everyday work and is where it starts.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <span class="flow-num">03</span>
+            <div>
+              <h4>Work in QuickBooks as usual</h4>
+              <p>Trackers are blocked, background calls are answered instantly, and a small timer shows how fast each page loaded.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Capabilities</span>
+        <h2 class="section-title reveal">Features</h2>
+        <div class="card-grid" style="margin-bottom: 32px;">
+          <div class="card reveal"><h3>Tracker blocking</h3><p>Stops the ad iframe that loads Bing, Facebook and Google Ads, plus 70 more tracking vendors at Strong.</p></div>
+          <div class="card reveal"><h3>Instant background replies</h3><p>Usage logging, promo and AI insight calls get an instant reply instead of waiting on the network.</p></div>
+          <div class="card reveal"><h3>Remembered flags &amp; settings</h3><p>Feature flags and company settings are reused across pages and tabs. Saving a setting clears them everywhere.</p></div>
+          <div class="card reveal"><h3>Merged duplicate requests</h3><p>Identical reads in flight at the same time share one answer.</p></div>
+          <div class="card reveal"><h3>Plugins never started</h3><p>Marketing widgets, onboarding tips and the AI assistant are removed before QuickBooks loads them. Nothing fails to load.</p></div>
+          <div class="card reveal"><h3>Learns new trackers</h3><p>Scores every address QuickBooks loads from 0 to 100 and flags anything new Intuit rolls out.</p></div>
+        </div>
+
+        <h3 class="reveal" style="font-family: var(--font-mono); font-size: 1.1rem; margin-top: 40px; color: var(--accent);">Self-healing by design</h3>
+        <p class="section-body reveal">If QuickBooks throws errors right after a learned block, that block gets a strike. Two strikes and it is lifted for good &mdash; and you're told.</p>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Page Timer</span>
+        <h2 class="section-title reveal">See every page get faster</h2>
+        <ul class="check-list reveal">
+          <li>A small chip counts up while each screen loads, against your usual time for that screen</li>
+          <li>&ldquo;Banking ready in 1.8 s&rdquo; &mdash; and how that compares with usual</li>
+          <li>Fireworks when a page loads faster than usual, a gold check for a new best</li>
+          <li>Report timings in the toolbar: total, server wait, insights and frozen time</li>
+          <li>A Recent pages chart in the popup, with new bests starred</li>
+        </ul>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Safety</span>
+        <h2 class="section-title reveal">Never touches what matters</h2>
+        <div class="card-grid">
+          <div class="card reveal"><h3>Your books are untouched</h3><p>Sign-in, banking and bank feeds, payments, payroll, tax, reports, transactions, invoices and bills are never blocked.</p></div>
+          <div class="card reveal"><h3>Fraud checks kept</h3><p>Intuit's fraud and device checks always run, so you don't get extra sign-in challenges or payment holds.</p></div>
+          <div class="card reveal"><h3>Nothing leaves your computer</h3><p>Everything it learns and remembers stays in your browser. No data is collected or sent.</p></div>
+          <div class="card reveal"><h3>One-click undo</h3><p>&ldquo;Something's not working?&rdquo; turns protection down a step and reloads QuickBooks.</p></div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Knowledge Base</span>
+        <h2 class="section-title reveal">FAQ</h2>
+
+        <div class="faq-container reveal">
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Does it change anything in my QuickBooks data? <span>+</span></button>
+            <div class="faq-content"><p>No. QBO Lite only changes what your browser loads. It never changes your books.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Which protection level should we use? <span>+</span></button>
+            <div class="faq-content"><p>Normal is recommended for everyone. Strong blocks more, including new trackers it finds on its own. Maximum also hides Intuit's sales prompts and the cookie banner.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">What if something in QuickBooks stops working? <span>+</span></button>
+            <div class="faq-content"><p>Click &ldquo;Something's not working?&rdquo; to turn protection down a step and reload. At Off, QuickBooks runs exactly as Intuit made it.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Can we still screen-share with QuickBooks support? <span>+</span></button>
+            <div class="faq-content"><p>Yes. Untick the support screen-share add-on under Details before the session. Intuit support may also ask you to turn extensions off.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">How do staff install it? <span>+</span></button>
+            <div class="faq-content"><p>Through a private Chrome Web Store link (Add to Chrome), or pushed automatically to managed Chrome through Google Admin, Intune or Group Policy. Updates are automatic.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Does it work in Microsoft Edge? <span>+</span></button>
+            <div class="faq-content"><p>Yes. Edge can install it from the Chrome Web Store when extensions from other stores are allowed.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <div class="cta-box reveal">
+          <span class="prompt">$</span>
+          <h2>Less waiting. Same QuickBooks.</h2>
+          <p style="margin: 16px 0; color: var(--text-primary); font-size: 1.2rem;">Nearly half the JavaScript gone. Pixel-identical screens.</p>
+          <a href="mailto:info@gauvreaucpa.ca" class="cta-btn">Initialize Service</a>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <a href="/" class="nav-link">&larr; Back to Suite</a>
+      </footer>
+    </div>
+  </main>
+
+  <script is:inline>
+    // Scroll progress
+    const progress = document.getElementById('progress-bar');
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      if (h > 0) progress.style.width = (window.scrollY / h * 100) + '%';
+    }, { passive: true });
+
+    // Intersection Observer for reveals
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-transitioning');
+          requestAnimationFrame(() => {
+            entry.target.classList.add('is-visible');
+          });
+          
+          entry.target.addEventListener('transitionend', function handler(e) {
+            if (e.propertyName === 'transform') {
+              entry.target.classList.remove('is-transitioning');
+              entry.target.removeEventListener('transitionend', handler);
+            }
+          });
+          
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // FAQ Accordion
+    document.querySelectorAll('.faq-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', !expanded);
+        btn.querySelector('span').textContent = expanded ? '+' : '−';
+        
+        const content = btn.nextElementSibling;
+        if (!expanded) {
+          content.style.maxHeight = content.scrollHeight + 'px';
+        } else {
+          content.style.maxHeight = '0px';
+        }
+      });
+    });
+
+    // Ambient Canvas
+    (() => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const canvas = document.getElementById('ambient-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d', { alpha: true });
+      const LINE_SPACING = 56;
+      let w = 0, h = 0, dpr = 1, offset = 0, scrollVel = 0, lastY = window.scrollY;
+      let rafId, isHidden = false;
+      
+      function resize() {
+        dpr = Math.min(devicePixelRatio, 2);
+        w = window.innerWidth; h = window.innerHeight;
+        canvas.width = w * dpr; canvas.height = h * dpr;
+        canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      
+      let rTimer;
+      window.addEventListener('resize', () => { clearTimeout(rTimer); rTimer = setTimeout(resize, 100); }, { passive: true });
+      resize();
+      
+      window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        scrollVel = Math.min(Math.abs(y - lastY), 20);
+        lastY = y;
+        setTimeout(() => { scrollVel = Math.max(0, scrollVel - 2); }, 80);
+      }, { passive: true });
+      
+      function draw() {
+        if (isHidden) return;
+        ctx.clearRect(0, 0, w, h);
+        const speed = 0.3 + scrollVel * 0.004;
+        offset = (offset + speed) % LINE_SPACING;
+        const count = Math.ceil(h / LINE_SPACING) + 2;
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(212, 168, 67, 0.04)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < count; i++) {
+          const y = Math.round(i * LINE_SPACING - offset);
+          ctx.moveTo(0, y); ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+        rafId = requestAnimationFrame(draw);
+      }
+      
+      document.addEventListener('visibilitychange', () => {
+        isHidden = document.hidden;
+        if (!isHidden) { offset = 0; draw(); } else cancelAnimationFrame(rafId);
+      });
+      draw();
+    })();
+  </script>
+</SubpageLayout>
