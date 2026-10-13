@@ -1,0 +1,594 @@
+---
+import SubpageLayout from '../layouts/SubpageLayout.astro';
+---
+<SubpageLayout title="Clio Interest Posting - Gauvreau Accounting" description="A Windows desktop app that charges interest on overdue Clio Manage invoices, once a month, without ever charging the same period twice.">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-hover: #1c2230;
+      --border: #30363d;
+      --text-primary: #f0ebe0;
+      --text-body: #8b949e;
+      --text-muted: #6e7681;
+      --accent: #d4a843;
+      --success: #3fb950;
+      --warn: #f0883e;
+      --error: #f85149;
+      
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-mono: 'DM Mono', 'SF Mono', monospace;
+      
+      --dur-instant: 80ms;
+      --dur-quick: 180ms;
+      --dur-base: 320ms;
+      --dur-scene: 600ms;
+      --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+      --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      
+      --radius-lg: 8px;
+    }
+
+    main {
+      background-color: var(--bg);
+      color: var(--text-body);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    #ambient-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .content-wrapper {
+      position: relative;
+      z-index: 10;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 100px 24px 40px;
+    }
+
+    .top-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 1px;
+      background: var(--accent);
+      z-index: 101;
+      width: 0%;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color var(--dur-quick) var(--ease-enter);
+    }
+    .nav-link:hover { color: var(--text-primary); }
+    .prompt { color: var(--accent); margin-right: 8px; }
+
+    h1, h2, h3, h4 {
+      font-weight: 400;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-style: italic;
+      line-height: 1.1;
+    }
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-style: italic;
+    }
+    .section-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .section-body {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text-body);
+      max-width: 600px;
+      margin-bottom: 32px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      background: rgba(212, 168, 67, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      color: var(--accent);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 24px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity var(--dur-scene) var(--ease-exit), transform var(--dur-scene) var(--ease-exit);
+    }
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+    }
+
+    section { padding: 60px 0; }
+    .below-fold { content-visibility: auto; contain-intrinsic-size: 600px; }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: border-color var(--dur-base) var(--ease-enter);
+    }
+    .card:hover { border-color: var(--accent); }
+    .card h3 {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    .card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+
+    .flow-steps {
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .flow-step {
+      display: flex; gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      align-items: flex-start;
+    }
+    .flow-num {
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 1.2rem;
+    }
+    .flow-step h4 { font-family: var(--font-mono); font-size: 1.1rem; margin-bottom: 4px; }
+    .flow-step p { font-size: 0.9rem; color: var(--text-muted); }
+
+    .check-list { list-style: none; padding: 0; }
+    .check-list li {
+      position: relative;
+      padding-left: 24px;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+    .check-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 768px) { .compare-grid { grid-template-columns: 1fr; } }
+    .compare-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+    .compare-card.before { border-top: 2px solid var(--error); }
+    .compare-card.after { border-top: 2px solid var(--success); }
+    .compare-card h3 { font-family: var(--font-mono); font-size: 1.2rem; }
+    .compare-card ul { list-style: none; padding: 0; }
+    .compare-card li {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .compare-card li:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-btn {
+      width: 100%; background: none; border: none;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 1rem; text-align: left; padding: 24px 0;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    }
+    .faq-btn:hover { color: var(--accent); }
+    .faq-content {
+      max-height: 0; overflow: hidden;
+      transition: max-height var(--dur-base) var(--ease-spring);
+    }
+    .faq-content p { padding-bottom: 24px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+
+    .cta-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 48px;
+      margin-top: 40px;
+    }
+    .cta-box h2 {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: clamp(2rem, 4vw, 2.5rem);
+    }
+    .cta-btn {
+      display: inline-block; margin-top: 24px; padding: 12px 24px;
+      background: transparent; color: var(--accent); border: 1px solid var(--accent);
+      text-decoration: none; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em;
+      transition: all var(--dur-quick) var(--ease-enter);
+    }
+    .cta-btn:hover { background: var(--accent); color: var(--bg); }
+
+    .footer { text-align: center; padding: 40px 0; border-top: 1px solid var(--border); margin-top: 80px; }
+  </style>
+
+  <main>
+    <div id="progress-bar"></div>
+    <canvas id="ambient-canvas"></canvas>
+    
+    <nav class="top-nav">
+      <div class="nav-left">
+        <span class="prompt">$</span>
+        <img loading="lazy" decoding="async" src="https://gauvreaucpa.ca/hs-fs/hubfs/Mobile%20Logo_-1.png" alt="Gauvreau" style="height:14px;width:auto;display:block;">
+      </div>
+      <div class="nav-right">
+        <a href="/" class="nav-link">&larr; Back to Suite</a>
+      </div>
+    </nav>
+
+    <div class="content-wrapper">
+      <section id="hero" class="reveal">
+        <div class="badge">[STATUS: LIVE] &middot; Interest Billing</div>
+        <h1>Clio Interest Posting</h1>
+        <p class="section-body" style="font-size: 1.2rem; max-width: 800px;">
+          A Windows desktop app that charges interest on overdue Clio Manage invoices. Review the figures, post, done &mdash; once a month, on the first business day.
+        </p>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">The Challenge</span>
+        <h2 class="section-title reveal">Late-payment interest rarely gets charged</h2>
+        <p class="section-body reveal">
+          Your engagement letter allows interest on overdue invoices. Working it out by hand, invoice by invoice, every month, means it usually doesn't happen &mdash; or happens wrong.
+        </p>
+
+        <div class="card-grid">
+          <div class="card reveal">
+            <h3>Hours of arithmetic</h3>
+            <p>Days late, rates, periods and balances, calculated one invoice at a time in a spreadsheet.</p>
+          </div>
+          <div class="card reveal">
+            <h3>The same month billed twice</h3>
+            <p>Recalculating from the due date each month quietly charges clients for periods they already paid interest on.</p>
+          </div>
+          <div class="card reveal">
+            <h3>Re-keying into Clio</h3>
+            <p>Every figure has to be typed back into Clio as an expense entry, on the right matter, with a description the client can follow.</p>
+          </div>
+          <div class="card reveal">
+            <h3>Different terms per client</h3>
+            <p>Some clients agreed compound monthly, others a flat rate, others nothing at all.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Workflow</span>
+        <h2 class="section-title reveal">How it works</h2>
+
+        <div class="flow-steps reveal">
+          <div class="flow-step">
+            <span class="flow-num">01</span>
+            <div>
+              <h4>Choose the invoices</h4>
+              <p>Load every unpaid invoice from Clio with its interest already worked out. &ldquo;27 invoices can be charged interest. That would add $1,204.55.&rdquo; Charge them all, or pick.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <span class="flow-num">02</span>
+            <div>
+              <h4>Check what it charges</h4>
+              <p>Every charge listed, searchable and sortable, with the total and any warnings in plain words. Or review it all in Excel instead.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <span class="flow-num">03</span>
+            <div>
+              <h4>Send it to Clio</h4>
+              <p>Do a practice run first &mdash; same list, same totals, nothing sent. Then charge it for real and keep the spreadsheet of what was posted.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Capabilities</span>
+        <h2 class="section-title reveal">Features</h2>
+        <div class="card-grid" style="margin-bottom: 32px;">
+          <div class="card reveal"><h3>Five interest methods</h3><p>Annual, weekly, monthly, daily simple or a fixed percentage &mdash; whichever your engagement letter says &mdash; with optional compounding.</p></div>
+          <div class="card reveal"><h3>Per-matter terms</h3><p>One custom field on the matter in Clio holds that client's terms. Matters without one use the firm-wide terms.</p></div>
+          <div class="card reveal"><h3>Admin fees, done right</h3><p>A flat fee added once per invoice, not every month, and spelled out on the line the client reads.</p></div>
+          <div class="card reveal"><h3>Post it your way</h3><p>An entry on each matter, an invoice per client, a separate interest bill per matter, or one merged line per matter.</p></div>
+          <div class="card reveal"><h3>Work in Excel</h3><p>Export a sheet, review it with a partner, change a rate or amount, bring it back. Every figure is re-checked against Clio before posting.</p></div>
+          <div class="card reveal"><h3>Built for large firms</h3><p>Handles tens of thousands of open invoices, with live progress while Clio is read and a Cancel button.</p></div>
+        </div>
+
+        <h3 class="reveal" style="font-family: var(--font-mono); font-size: 1.1rem; margin-top: 40px; color: var(--accent);">Interest on overdue invoice #1515 (interest $9.12 plus $15.00 administration fee)</h3>
+        <p class="section-body reveal">The line description Clio receives &mdash; so the client can check every figure.</p>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Safeguards</span>
+        <h2 class="section-title reveal">Never charges the same period twice</h2>
+        <p class="section-body reveal">Every run charges only the period that just completed &mdash; never recomputed from the due date.</p>
+
+        <div class="compare-grid">
+          <div class="compare-card before reveal">
+            <h3 style="color: var(--error); margin-bottom: 16px;">Recalculated from the due date</h3>
+            <ul>
+              <li>1 Aug &mdash; 1 month &mdash; $9.12</li>
+              <li>1 Sep &mdash; 2 months &mdash; $18.24</li>
+              <li>1 Oct &mdash; 3 months &mdash; $27.36</li>
+              <li>After five runs: $136.80 on a $912 invoice</li>
+            </ul>
+          </div>
+          <div class="compare-card after reveal">
+            <h3 style="color: var(--success); margin-bottom: 16px;">Clio Interest Posting</h3>
+            <ul>
+              <li>1 Aug &mdash; new month &mdash; $9.12</li>
+              <li>1 Sep &mdash; new month &mdash; $9.12</li>
+              <li>1 Oct &mdash; new month &mdash; $9.12</li>
+              <li style="color: var(--success);">After five runs: $45.60 &mdash; exactly right</li>
+            </ul>
+          </div>
+        </div>
+
+        <ul class="check-list reveal" style="margin-top: 32px;">
+          <li>An invoice already charged this period is greyed out, and the app refuses it even if the screen is wrong</li>
+          <li>Charging again on purpose means typing CHARGE AGAIN on the review step</li>
+          <li>If a run is interrupted, the next launch checks Clio for what actually landed &mdash; nothing is guessed</li>
+          <li>Every run, practice or real, is recorded under Past runs with a CSV export</li>
+        </ul>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Comparison</span>
+        <h2 class="section-title reveal">Before / After</h2>
+
+        <div class="compare-grid">
+          <div class="compare-card before reveal">
+            <h3 style="color: var(--error); margin-bottom: 16px;">Manual</h3>
+            <ul>
+              <li>Export overdue invoices from Clio</li>
+              <li>Work out days late and rates in Excel</li>
+              <li>Check what was charged last month</li>
+              <li>Type each charge into Clio by hand</li>
+              <li>Build interest bills one matter at a time</li>
+            </ul>
+          </div>
+          <div class="compare-card after reveal">
+            <h3 style="color: var(--success); margin-bottom: 16px;">Automated</h3>
+            <ul>
+              <li>Load unpaid invoices, interest worked out</li>
+              <li>Review the list and the total</li>
+              <li>Practice run, then charge for real</li>
+              <li>Entries and bills created in Clio</li>
+              <li style="color: var(--success);">A CSV of everything posted</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Value</span>
+        <h2 class="section-title reveal">Benefits</h2>
+        <div class="card-grid">
+          <div class="card reveal"><h3>Revenue you were owed</h3><p>Interest your engagement letters allow actually gets charged, every month.</p></div>
+          <div class="card reveal"><h3>Minutes, not days</h3><p>A month-end run is three steps, most of them a button that says what comes next.</p></div>
+          <div class="card reveal"><h3>Charges clients can check</h3><p>Every line names the invoice, the interest and any fee behind it.</p></div>
+          <div class="card reveal"><h3>No double billing</h3><p>A local ledger of every charge makes billing the same period twice impossible by accident.</p></div>
+          <div class="card reveal"><h3>Runs on your PC</h3><p>A local desktop app with no cloud component and no server for the firm to maintain.</p></div>
+          <div class="card reveal"><h3>No admin rights needed</h3><p>Installs for one Windows user. No Clio developer app, client ID or token to set up.</p></div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Knowledge Base</span>
+        <h2 class="section-title reveal">FAQ</h2>
+
+        <div class="faq-container reveal">
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Can I try it without charging anything? <span>+</span></button>
+            <div class="faq-content"><p>Yes. A practice run goes through every step and sends nothing to Clio. It is the default, and the right choice the first time and after changing the terms.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">What if a client was already charged this month? <span>+</span></button>
+            <div class="faq-content"><p>The invoice is greyed out, showing the amount and date already charged. The app refuses to charge it again unless you deliberately confirm.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Can different clients have different rates? <span>+</span></button>
+            <div class="faq-content"><p>Yes. Set the terms on a matter in Clio, or fill in the matter terms sheet in Excel. Matters without their own terms use the firm-wide terms.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Does the client get a separate interest bill? <span>+</span></button>
+            <div class="faq-content"><p>Your choice. Leave the interest on each matter for the next bill, or have the app create an interest bill per matter, with one line per invoice or one merged line.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Does it support compounding? <span>+</span></button>
+            <div class="faq-content"><p>Yes, for the annual, weekly and monthly methods. Whether your engagement letter and jurisdiction allow compounding or admin fees is for the firm to confirm.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Which Clio regions does it work with? <span>+</span></button>
+            <div class="faq-content"><p>Choose the region your firm's Clio account is on in Settings, then connect through your normal browser sign-in.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <div class="cta-box reveal">
+          <span class="prompt">$</span>
+          <h2>Charge the interest you're owed.</h2>
+          <p style="margin: 16px 0; color: var(--text-primary); font-size: 1.2rem;">Review. Practice. Post. Once a month.</p>
+          <a href="mailto:info@gauvreaucpa.ca" class="cta-btn">Initialize Service</a>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <a href="/" class="nav-link">&larr; Back to Suite</a>
+      </footer>
+    </div>
+  </main>
+
+  <script is:inline>
+    // Scroll progress
+    const progress = document.getElementById('progress-bar');
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      if (h > 0) progress.style.width = (window.scrollY / h * 100) + '%';
+    }, { passive: true });
+
+    // Intersection Observer for reveals
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-transitioning');
+          requestAnimationFrame(() => {
+            entry.target.classList.add('is-visible');
+          });
+          
+          entry.target.addEventListener('transitionend', function handler(e) {
+            if (e.propertyName === 'transform') {
+              entry.target.classList.remove('is-transitioning');
+              entry.target.removeEventListener('transitionend', handler);
+            }
+          });
+          
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // FAQ Accordion
+    document.querySelectorAll('.faq-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', !expanded);
+        btn.querySelector('span').textContent = expanded ? '+' : '−';
+        
+        const content = btn.nextElementSibling;
+        if (!expanded) {
+          content.style.maxHeight = content.scrollHeight + 'px';
+        } else {
+          content.style.maxHeight = '0px';
+        }
+      });
+    });
+
+    // Ambient Canvas
+    (() => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const canvas = document.getElementById('ambient-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d', { alpha: true });
+      const LINE_SPACING = 56;
+      let w = 0, h = 0, dpr = 1, offset = 0, scrollVel = 0, lastY = window.scrollY;
+      let rafId, isHidden = false;
+      
+      function resize() {
+        dpr = Math.min(devicePixelRatio, 2);
+        w = window.innerWidth; h = window.innerHeight;
+        canvas.width = w * dpr; canvas.height = h * dpr;
+        canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      
+      let rTimer;
+      window.addEventListener('resize', () => { clearTimeout(rTimer); rTimer = setTimeout(resize, 100); }, { passive: true });
+      resize();
+      
+      window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        scrollVel = Math.min(Math.abs(y - lastY), 20);
+        lastY = y;
+        setTimeout(() => { scrollVel = Math.max(0, scrollVel - 2); }, 80);
+      }, { passive: true });
+      
+      function draw() {
+        if (isHidden) return;
+        ctx.clearRect(0, 0, w, h);
+        const speed = 0.3 + scrollVel * 0.004;
+        offset = (offset + speed) % LINE_SPACING;
+        const count = Math.ceil(h / LINE_SPACING) + 2;
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(212, 168, 67, 0.04)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < count; i++) {
+          const y = Math.round(i * LINE_SPACING - offset);
+          ctx.moveTo(0, y); ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+        rafId = requestAnimationFrame(draw);
+      }
+      
+      document.addEventListener('visibilitychange', () => {
+        isHidden = document.hidden;
+        if (!isHidden) { offset = 0; draw(); } else cancelAnimationFrame(rafId);
+      });
+      draw();
+    })();
+  </script>
+</SubpageLayout>
