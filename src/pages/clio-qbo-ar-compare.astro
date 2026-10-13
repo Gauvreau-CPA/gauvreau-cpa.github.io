@@ -1,0 +1,605 @@
+---
+import SubpageLayout from '../layouts/SubpageLayout.astro';
+---
+<SubpageLayout title="Clio <-> QuickBooks A/R Compare - Gauvreau Accounting" description="Compare open A/R between Clio Manage and QuickBooks Online client by client, invoice by invoice and payment by payment — and see exactly what to fix.">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-hover: #1c2230;
+      --border: #30363d;
+      --text-primary: #f0ebe0;
+      --text-body: #8b949e;
+      --text-muted: #6e7681;
+      --accent: #d4a843;
+      --success: #3fb950;
+      --warn: #f0883e;
+      --error: #f85149;
+      
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-mono: 'DM Mono', 'SF Mono', monospace;
+      
+      --dur-instant: 80ms;
+      --dur-quick: 180ms;
+      --dur-base: 320ms;
+      --dur-scene: 600ms;
+      --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+      --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      
+      --radius-lg: 8px;
+    }
+
+    main {
+      background-color: var(--bg);
+      color: var(--text-body);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    #ambient-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .content-wrapper {
+      position: relative;
+      z-index: 10;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 100px 24px 40px;
+    }
+
+    .top-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 1px;
+      background: var(--accent);
+      z-index: 101;
+      width: 0%;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color var(--dur-quick) var(--ease-enter);
+    }
+    .nav-link:hover { color: var(--text-primary); }
+    .prompt { color: var(--accent); margin-right: 8px; }
+
+    h1, h2, h3, h4 {
+      font-weight: 400;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-style: italic;
+      line-height: 1.1;
+    }
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-style: italic;
+    }
+    .section-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .section-body {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text-body);
+      max-width: 600px;
+      margin-bottom: 32px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      background: rgba(212, 168, 67, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      color: var(--accent);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 24px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity var(--dur-scene) var(--ease-exit), transform var(--dur-scene) var(--ease-exit);
+    }
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+    }
+
+    section { padding: 60px 0; }
+    .below-fold { content-visibility: auto; contain-intrinsic-size: 600px; }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: border-color var(--dur-base) var(--ease-enter);
+    }
+    .card:hover { border-color: var(--accent); }
+    .card h3 {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    .card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+
+    .flow-steps {
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .flow-step {
+      display: flex; gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      align-items: flex-start;
+    }
+    .flow-num {
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 1.2rem;
+    }
+    .flow-step h4 { font-family: var(--font-mono); font-size: 1.1rem; margin-bottom: 4px; }
+    .flow-step p { font-size: 0.9rem; color: var(--text-muted); }
+
+    .check-list { list-style: none; padding: 0; }
+    .check-list li {
+      position: relative;
+      padding-left: 24px;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+    .check-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 768px) { .compare-grid { grid-template-columns: 1fr; } }
+    .compare-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+    .compare-card.before { border-top: 2px solid var(--error); }
+    .compare-card.after { border-top: 2px solid var(--success); }
+    .compare-card h3 { font-family: var(--font-mono); font-size: 1.2rem; }
+    .compare-card ul { list-style: none; padding: 0; }
+    .compare-card li {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .compare-card li:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-btn {
+      width: 100%; background: none; border: none;
+      color: var(--text-primary); font-family: var(--font-mono);
+      font-size: 1rem; text-align: left; padding: 24px 0;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    }
+    .faq-btn:hover { color: var(--accent); }
+    .faq-content {
+      max-height: 0; overflow: hidden;
+      transition: max-height var(--dur-base) var(--ease-spring);
+    }
+    .faq-content p { padding-bottom: 24px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+
+    .cta-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 48px;
+      margin-top: 40px;
+    }
+    .cta-box h2 {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: clamp(2rem, 4vw, 2.5rem);
+    }
+    .cta-btn {
+      display: inline-block; margin-top: 24px; padding: 12px 24px;
+      background: transparent; color: var(--accent); border: 1px solid var(--accent);
+      text-decoration: none; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em;
+      transition: all var(--dur-quick) var(--ease-enter);
+    }
+    .cta-btn:hover { background: var(--accent); color: var(--bg); }
+
+    .footer { text-align: center; padding: 40px 0; border-top: 1px solid var(--border); margin-top: 80px; }
+  </style>
+
+  <main>
+    <div id="progress-bar"></div>
+    <canvas id="ambient-canvas"></canvas>
+    
+    <nav class="top-nav">
+      <div class="nav-left">
+        <span class="prompt">$</span>
+        <img loading="lazy" decoding="async" src="https://gauvreaucpa.ca/hs-fs/hubfs/Mobile%20Logo_-1.png" alt="Gauvreau" style="height:14px;width:auto;display:block;">
+      </div>
+      <div class="nav-right">
+        <a href="/" class="nav-link">&larr; Back to Suite</a>
+      </div>
+    </nav>
+
+    <div class="content-wrapper">
+      <section id="hero" class="reveal">
+        <div class="badge">[STATUS: LIVE] &middot; A/R Reconciliation</div>
+        <h1>Clio &harr; QuickBooks A/R Compare</h1>
+        <p class="section-body" style="font-size: 1.2rem; max-width: 800px;">
+          Does QuickBooks Online agree with Clio about what clients owe? Find out client by client, invoice by invoice — and exactly what to fix.
+        </p>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">The Challenge</span>
+        <h2 class="section-title reveal">Two systems, two A/R balances</h2>
+        <p class="section-body reveal">
+          Clio says a client owes one amount. QuickBooks says another. Finding out why means exporting reports from both and hunting through invoices and payments one at a time.
+        </p>
+
+        <div class="card-grid">
+          <div class="card reveal">
+            <h3>Balances that never tie out</h3>
+            <p>The A/R totals differ, but nobody can say which client, which invoice or which payment is responsible.</p>
+          </div>
+          <div class="card reveal">
+            <h3>Payments that go missing</h3>
+            <p>A payment is received in Clio but never recorded in QuickBooks, and the invoice sits open for months.</p>
+          </div>
+          <div class="card reveal">
+            <h3>Interest recorded differently</h3>
+            <p>Clio charges interest on the bill. QuickBooks invoices it separately. Every interest charge looks like a false difference.</p>
+          </div>
+          <div class="card reveal">
+            <h3>A sync that quietly stopped</h3>
+            <p>Bills stop flowing from Clio to QuickBooks, and nobody notices until month-end doesn't balance.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Workflow</span>
+        <h2 class="section-title reveal">How it works</h2>
+
+        <div class="flow-steps reveal">
+          <div class="flow-step">
+            <span class="flow-num">01</span>
+            <div>
+              <h4>Connect both systems</h4>
+              <p>Sign in to QuickBooks Online and Clio Manage through your browser, once. No API keys, no passwords typed into the tool. Works with Clio in the US, Canada, Europe and Australia.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <span class="flow-num">02</span>
+            <div>
+              <h4>Run Compare</h4>
+              <p>Both systems are pulled in parallel and compared client by client, invoice by invoice, payment by payment. Read-only — nothing is changed in either system.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <span class="flow-num">03</span>
+            <div>
+              <h4>Work the Action List</h4>
+              <p>Open the Excel report: every issue, its priority, what to do in plain words, and a link straight to the record in QuickBooks or Clio.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Output</span>
+        <h2 class="section-title reveal">Two reports</h2>
+        <p class="section-body reveal">One for the firm, one for whoever does the clean-up.</p>
+
+        <div class="compare-grid">
+          <div class="compare-card reveal">
+            <h3 style="color: var(--accent); margin-bottom: 16px;">Client Report</h3>
+            <ul>
+              <li>QuickBooks A/R, Clio A/R and the difference</li>
+              <li>Where the difference comes from</li>
+              <li>Clients that differ, largest first</li>
+              <li>Aging side by side, with a chart</li>
+              <li>Action Items with a Done column — print-ready, no jargon</li>
+            </ul>
+          </div>
+          <div class="compare-card reveal">
+            <h3 style="color: var(--accent); margin-bottom: 16px;">Detailed Workbook</h3>
+            <ul>
+              <li>Customer, Invoice &amp; Payment Compare</li>
+              <li>Action List and Changes Since Last Run</li>
+              <li>Mapping sheet with match suggestions</li>
+              <li>Clio interest charges and how they tie out</li>
+              <li>QBO Aging Summary, Aging Detail &amp; Customer Balance</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Capabilities</span>
+        <h2 class="section-title reveal">Every dollar explained</h2>
+        <div class="card-grid" style="margin-bottom: 32px;">
+          <div class="card reveal"><h3>QBO non-invoice A/R</h3><p>Credit memos, unapplied payments and journal entries sitting in A/R but not on any invoice.</p></div>
+          <div class="card reveal"><h3>Matched invoice differences</h3><p>The same invoice with a different balance — and why: paid in Clio but open in QBO, interest unpaid, totals differ.</p></div>
+          <div class="card reveal"><h3>QBO invoices not in Clio</h3><p>Open in QuickBooks with no open Clio bill: paid or voided in Clio, or never in Clio at all.</p></div>
+          <div class="card reveal"><h3>Clio bills not in QBO</h3><p>Shown by month issued, so a stopped Clio-to-QuickBooks sync is obvious.</p></div>
+          <div class="card reveal"><h3>Interest, tied together</h3><p>Separate QuickBooks interest invoices are matched to the Clio bill they belong to.</p></div>
+          <div class="card reveal"><h3>Missing payments found</h3><p>Every Clio payment is checked against QuickBooks — even when one system splits it per invoice and the other doesn't.</p></div>
+        </div>
+
+        <h3 class="reveal" style="font-family: var(--font-mono); font-size: 1.1rem; margin-top: 40px; color: var(--accent);">Difference = Non-invoice A/R + Matched diff + QBO only &minus; Clio only</h3>
+        <p class="section-body reveal">For every client, a check column proves the parts add up to 0.00.</p>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Action List</span>
+        <h2 class="section-title reveal">What to fix, in order</h2>
+        <div class="card-grid">
+          <div class="card reveal" style="border-top: 2px solid var(--error);"><h3 style="color: var(--error);">1 &middot; Urgent</h3><p>Clio received a payment that QuickBooks doesn't have — whole, or only in part. Record it on the open invoice.</p></div>
+          <div class="card reveal" style="border-top: 2px solid var(--warn);"><h3 style="color: var(--warn);">2 &middot; Important</h3><p>Unapplied payments, open credits, possible duplicates, missing bills and invoices posted to the wrong customer.</p></div>
+          <div class="card reveal" style="border-top: 2px solid var(--text-muted);"><h3>3 &middot; Review</h3><p>QuickBooks invoices or payments with no Clio match, and clients that need a match — with the closest name suggested.</p></div>
+        </div>
+        <ul class="check-list reveal" style="margin-top: 32px;">
+          <li>Items fixed since the last run drop off and are listed as Fixed</li>
+          <li>Items that weren't on the previous list are flagged New</li>
+          <li>Every item keeps the date it was first seen, so old problems stand out</li>
+        </ul>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Comparison</span>
+        <h2 class="section-title reveal">Before / After</h2>
+
+        <div class="compare-grid">
+          <div class="compare-card before reveal">
+            <h3 style="color: var(--error); margin-bottom: 16px;">Manual</h3>
+            <ul>
+              <li>Export A/R aging from QuickBooks</li>
+              <li>Export outstanding bills from Clio</li>
+              <li>Match client names by hand in Excel</li>
+              <li>Open invoices one by one to find the gap</li>
+              <li>Guess which payments never made it across</li>
+              <li>Start over next month</li>
+            </ul>
+          </div>
+          <div class="compare-card after reveal">
+            <h3 style="color: var(--success); margin-bottom: 16px;">Automated</h3>
+            <ul>
+              <li>Click Run Compare</li>
+              <li>Clients matched automatically</li>
+              <li>Every difference explained to the cent</li>
+              <li>Missing payments listed, most urgent first</li>
+              <li style="color: var(--success);">Next run shows what you fixed</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Value</span>
+        <h2 class="section-title reveal">Benefits</h2>
+        <div class="card-grid">
+          <div class="card reveal"><h3>A/R you can trust</h3><p>Know that QuickBooks and Clio agree — or exactly why they don't.</p></div>
+          <div class="card reveal"><h3>Faster month-end close</h3><p>Hours of spreadsheet matching become one run and a prioritized to-do list.</p></div>
+          <div class="card reveal"><h3>No lost payments</h3><p>Money received in Clio never goes unrecorded in QuickBooks.</p></div>
+          <div class="card reveal"><h3>Built for large firms</h3><p>Handles 100,000+ open invoices, past QuickBooks' query limits.</p></div>
+          <div class="card reveal"><h3>Read-only and secure</h3><p>Never writes to either system. Sign-ins are encrypted for your Windows user only.</p></div>
+          <div class="card reveal"><h3>Runs on a schedule</h3><p>Daily or weekly on its own, with the summary emailed through Outlook.</p></div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <span class="section-eyebrow reveal">Knowledge Base</span>
+        <h2 class="section-title reveal">FAQ</h2>
+
+        <div class="faq-container reveal">
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Does it change anything in Clio or QuickBooks? <span>+</span></button>
+            <div class="faq-content"><p>No. The tool only reads from both systems. Every fix is yours to make, guided by the Action List and its links.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">What if a client is matched wrongly? <span>+</span></button>
+            <div class="faq-content"><p>Correct it on the Mapping sheet and re-compare the saved pull in seconds — no need to pull either system again.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Does it handle interest? <span>+</span></button>
+            <div class="faq-content"><p>Yes. Clio interest on the bill is tied to QuickBooks' separate interest invoices, so interest doesn't appear as a false difference.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">How long does a run take? <span>+</span></button>
+            <div class="faq-content"><p>A small firm takes a minute or two. A firm with 100,000+ open invoices takes longer, mostly waiting on Clio.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">Which Clio regions are supported? <span>+</span></button>
+            <div class="faq-content"><p>United States, Canada, Europe and Australia, through your browser's Clio sign-in.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-btn" aria-expanded="false">What do I need to run it? <span>+</span></button>
+            <div class="faq-content"><p>Windows 10 or 11, Excel, and sign-ins for QuickBooks Online and Clio Manage. No Python, API keys or admin rights.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below-fold">
+        <div class="cta-box reveal">
+          <span class="prompt">$</span>
+          <h2>Clio and QuickBooks. Finally in agreement.</h2>
+          <p style="margin: 16px 0; color: var(--text-primary); font-size: 1.2rem;">One run. Two systems. Every difference explained.</p>
+          <a href="mailto:info@gauvreaucpa.ca" class="cta-btn">Initialize Service</a>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <a href="/" class="nav-link">&larr; Back to Suite</a>
+      </footer>
+    </div>
+  </main>
+
+  <script is:inline>
+    // Scroll progress
+    const progress = document.getElementById('progress-bar');
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      if (h > 0) progress.style.width = (window.scrollY / h * 100) + '%';
+    }, { passive: true });
+
+    // Intersection Observer for reveals
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-transitioning');
+          requestAnimationFrame(() => {
+            entry.target.classList.add('is-visible');
+          });
+          
+          entry.target.addEventListener('transitionend', function handler(e) {
+            if (e.propertyName === 'transform') {
+              entry.target.classList.remove('is-transitioning');
+              entry.target.removeEventListener('transitionend', handler);
+            }
+          });
+          
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // FAQ Accordion
+    document.querySelectorAll('.faq-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', !expanded);
+        btn.querySelector('span').textContent = expanded ? '+' : '−';
+        
+        const content = btn.nextElementSibling;
+        if (!expanded) {
+          content.style.maxHeight = content.scrollHeight + 'px';
+        } else {
+          content.style.maxHeight = '0px';
+        }
+      });
+    });
+
+    // Ambient Canvas
+    (() => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const canvas = document.getElementById('ambient-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d', { alpha: true });
+      const LINE_SPACING = 56;
+      let w = 0, h = 0, dpr = 1, offset = 0, scrollVel = 0, lastY = window.scrollY;
+      let rafId, isHidden = false;
+      
+      function resize() {
+        dpr = Math.min(devicePixelRatio, 2);
+        w = window.innerWidth; h = window.innerHeight;
+        canvas.width = w * dpr; canvas.height = h * dpr;
+        canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      
+      let rTimer;
+      window.addEventListener('resize', () => { clearTimeout(rTimer); rTimer = setTimeout(resize, 100); }, { passive: true });
+      resize();
+      
+      window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        scrollVel = Math.min(Math.abs(y - lastY), 20);
+        lastY = y;
+        setTimeout(() => { scrollVel = Math.max(0, scrollVel - 2); }, 80);
+      }, { passive: true });
+      
+      function draw() {
+        if (isHidden) return;
+        ctx.clearRect(0, 0, w, h);
+        const speed = 0.3 + scrollVel * 0.004;
+        offset = (offset + speed) % LINE_SPACING;
+        const count = Math.ceil(h / LINE_SPACING) + 2;
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(212, 168, 67, 0.04)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < count; i++) {
+          const y = Math.round(i * LINE_SPACING - offset);
+          ctx.moveTo(0, y); ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+        rafId = requestAnimationFrame(draw);
+      }
+      
+      document.addEventListener('visibilitychange', () => {
+        isHidden = document.hidden;
+        if (!isHidden) { offset = 0; draw(); } else cancelAnimationFrame(rafId);
+      });
+      draw();
+    })();
+  </script>
+</SubpageLayout>
