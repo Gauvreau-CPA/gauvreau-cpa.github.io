@@ -1,85 +1,72 @@
-# Gauvreau — Practice Automation Suite
+# Gauvreau CPA Documentation Portal
 
-> Purpose-built financial integration & billing automation tools for law firms running **Clio Manage**.
+Browse the Gauvreau law-firm accounting tools and watch sample runs
 
-[![CI](https://github.com/Gauvreau-CPA/gauvreau-cpa.github.io/actions/workflows/ci.yml/badge.svg)](https://github.com/Gauvreau-CPA/gauvreau-cpa.github.io/actions/workflows/ci.yml)
-![Built with Astro](https://img.shields.io/badge/Built%20with-Astro-FF5D01)
-![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-lightgrey)
+## What This Does
+Accounting staff need a single place to see what each Gauvreau tool for law firms does. This static website describes ten tools for Clio and QuickBooks Online (QBO), each on its own page. It also has a simulator that plays back a sample run, so you can show a firm what a tool looks like at work.
 
-**Live site:** https://gauvreau-cpa.github.io
+## Features
+- Interactive tool simulator
+- Application workflow guides
+- Tool card overview
+- Static site generation
 
-Gauvreau builds high-performance tools that turn manual accounting and billing
-operations inside Clio Manage into automated, repeatable pipelines — bridging
-legal practice management with QuickBooks Online and trust-accounting workflows.
+## Feature Details
 
-## What's inside
+### Interactive tool simulator
+What it does: Lets you play a scripted sample run of a tool inside a console window on the home page.
 
-The suite ships as a collection of standalone web applications, each targeting a
-specific bottleneck in a law firm's Clio Manage workflow:
+Why it matters: You can show a firm what a run looks like without touching any client data.
 
-| Application | What it does |
-| --- | --- |
-| **Clio Reconciliation Tool** | Export, bulk-edit, and clear bank transactions inside Clio Manage. |
-| **Clio Payment / Invoice Redater** | Securely back- or forward-date payments & invoices with dry-run validation. |
-| **Clio → QuickBooks Bridge** | Sync legal disbursements into QBO vendor bills with attached receipts. |
-| **Clio Rate Override Engine** | Enforce accurate time billing with automated, audited rate-matching rules. |
-| **Trust Transfer Tool** | Prepare requisitions, print Form 9As, and update Clio via a two-person workflow. |
+How to use it:
+1. Click Launch Simulator on the navigation bar.
+2. Pick the QuickBooks Bridge tab or the Rate Rules Engine tab.
+3. Click Run Automation Task.
 
-## Tech stack
+What happens next: The console prints the sample run line by line, with warnings and successes in their own colours.
 
-- **[Astro](https://astro.build)** — static site generation with zero client JS by default.
-- **TypeScript** — typed components and client scripts.
-- **[Lenis](https://lenis.studio)** — smooth scrolling.
-- A custom Vite plugin for GitHub Pages directory-index compatibility.
-- Variable fonts bundled under `public/fonts/` (Cormorant Garamond, Outfit, DM Mono).
+### Application workflow guides
+What it does: Handles explaining each tool's billing, reconciliation or trust transfer workflow on its own page.
 
-## Quick start
+Why it matters: You won't miss a step like the Form 9A trust requisition when you walk a firm through a tool.
 
-Prerequisites: **Node.js ≥ 22.12**.
+How to use it:
+1. Click Our Tools on the navigation bar.
+2. Click a tool card to open that tool's page.
+3. Read the How it works steps and the feature list.
 
-```bash
-npm install      # install dependencies
-npm run dev      # start the dev server at http://localhost:4321
-npm run build    # build the production site to ./dist
-npm run preview  # preview the production build locally
-```
+What happens next: You see that tool's workflow, features and, on most pages, a FAQ.
 
-## Project structure
+### Tool card overview
+What it does: Takes care of showing every tool as a card with a short summary, all in one grid.
 
-```text
-/
-├── public/            # static assets, fonts, favicons
-├── src/
-│   ├── components/    # Astro components (Preloader, ambient effects)
-│   ├── layouts/       # Layout.astro, SubpageLayout.astro
-│   ├── pages/         # one .astro file per application / route
-│   └── styles/        # global.css design tokens
-├── astro.config.mjs   # site config + custom Vite directory-index plugin
-└── package.json
-```
+Why it matters: Your team can pick the right tool for a migration task in a few seconds.
 
-## Architecture notes
+How to use it:
+1. Click View Applications on the home page.
+2. Scroll through the tool cards and read each summary.
+3. Click a card to open its page.
 
-- **Directory-index plugin** (`astro.config.mjs`): serves `index.html` for
-  directory paths in dev so the site behaves like GitHub Pages.
-- **Performance-first UI**: reveal-on-scroll, cursor glow, and a particle canvas
-  are all `requestAnimationFrame`-driven and disabled under
-  `prefers-reduced-motion`. Cards use `will-change` + `translate3d` for GPU
-  compositing with no layout thrash.
-- **Fonts**: self-hosted variable fonts live in `public/fonts/`; `Layout.astro`
-  also includes a Google Fonts `<link>` fallback for the same families.
+What happens next: The browser opens that tool's page.
 
-## Deployment
+### Static site generation
+What it does: Lets you build the whole site as plain HTML pages with `npm run build`.
 
-The site auto-deploys to **GitHub Pages** from the `main` branch via the
-workflow in `.github/workflows`. A CI workflow (`.github/workflows/ci.yml`)
-verifies every build before merge.
+Why it matters: You get fast page loads without running a database or server.
 
-## License
+How to use it:
+1. Open a terminal in the repository folder.
+2. Run `npm install`, then `npm run build`.
+3. Push your changes to the `main` branch to publish them.
 
-All rights reserved. See [LICENSE](./LICENSE). Use is granted only under a
-separate written license agreement with Gauvreau Accounting Tax Law Advisory.
+What happens next: The build lands in the `dist` folder, and the Deploy to GitHub Pages workflow publishes the site from `main`.
 
----
+## Quick Start
+1. Run `npm install` in your terminal to install dependencies.
+2. Run `npm run dev` to launch the local development server.
+3. Open `http://localhost:4321` in your web browser.
+4. The home page loads with the tool cards and the simulator.
 
-© 2026 Gauvreau Accounting Tax Law Advisory.
+## Requirements
+- Node.js 22.12 or later
+- Build and developer notes: DEVELOPING.md
